@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+import gefp
+from lib.cis import CIS
+
+mol = gefp.core.utilities.psi_molecule_from_file('water.xyz')
+
+set {
+ scf_type pk
+ basis sto-3g
+}
+
+c = CIS(mol, verbose=False)
+print(c.W)
