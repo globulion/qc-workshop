@@ -1,8 +1,31 @@
 # Population analyses
 
-The electronic charge
+Population analyses are useful tools for investigating charge distribution
+within molecular systems. 
 
-<img src="../figures/equations/el-charge.png" height="50"/>
-![]("figures/equations/el-charge.png")
+## Molecular total charge
 
-where
+The total charge of a molecule is a sum of atomic and electronic charge
+
+<img src="../figures/equations/charge-tot.png" height="50"/>
+
+where the total electronic charge
+can be expressed in terms of the
+bond order matrix **P** according to
+
+<img src="../figures/equations/charge-el.png" height="50"/>
+
+Note that the parameter kappa is arbitrary within the limits imposed.
+
+## Atomic charge population analysis
+
+The atomic charge can be defined as
+
+<img src="../figures/equations/charge-partial.atom.png" height="50"/>
+
+Therefore, it is clear that there exist infinite ways to obtain
+a set of partial atomic charges.
+
+## Localized orbital population analysis
+
+Another partitioning scheme
