@@ -60,21 +60,61 @@ def ClassicalTrajectory(Trajectory):
   def v(self, i): return self.trajectory[i].v
   def f(self, i): return self.trajectory[i].f
 
+class PhaseSpace(ABC):
+  def __init__(self, natoms, nstates):
+      ABC.__init__(self)
+      self.natoms = natoms
+      self.nstates = nstates
+  def set_x(self, x): self.x = x
+  def set_v(self, v): self.v = v
+  def set_f(self, f): self.f = f
 
+  def rescale_velocities(self, temp): pass
+
+class Quantum_PhaseSpace(PhaseSpace):
+  def __init__(self, natoms, nstates):
+      PhaseSpace.__init__(self, natoms, nstates) 
+      self.x = numpy.zeros((self.nstates, self.natoms, 3), dtype=numpy.float64)
+      self.v = numpy.zeros((self.nstates, self.natoms, 3), dtype=numpy.float64)
+      self.f = numpy.zeros((self.nstates, self.natoms, 3), dtype=numpy.float64)
+  def set_xn(self, x, n): self.x[n] = x.copy()
+  def set_vn(self, v, n): self.v[n] = v.copy()
+  def set_fn(self, f, n): self.f[n] = f.copy()
+
+class Classical_PhaseSpace(PhaseSpace):
+  def __init__(self, natoms):
+      PhaseSpace.__init__(self, natoms, 1) 
+      self.x = numpy.zeros((self.natoms, 3), dtype=numpy.float64)
+      self.v = numpy.zeros((self.natoms, 3), dtype=numpy.float64)
+      self.f = numpy.zeros((self.natoms, 3), dtype=numpy.float64)
+     
 class System:
-  def __init__(self, aggregate, temp=0.0):
+  def __init__(self, aggregate, temp=0.0, nstates=1):
       self.aggregate = aggregate
       self.temp = temp
+      self.nstates = 1
       self.hamiltonian = None
-      self.molecule_qm = None
-      self.molecule_bath = []
-      self.trajectories_qm = []
-      self.trajectories_bath = []
+      #
       self.update_aggregate(aggregate.geometry())
+      self.molecule_qm = aggregate.extract_subsets(1)
+      self.molecule_bath = [] if aggregate.nfrag() == 1 else [aggregate.extract_subsets(2+i) for i in range(aggregate.nfrag()-1)]
+      self.trajectories_qm = []
+      self.trajectory_bath = []
+      self.active_state = None
+      self.phase_space_qm = Quantum_PhaseSpace(self.molecule_qm.natom(), nstates)
+      self.phase_space_cl = None
+      
 
-  def hop(self, nstate): pass
+  def hop(self, nstate): 
+      xyz = self.aggregate.geometry().to_array(dense=True)
+      xyz[:self.molecule_qm.natom(),:] = self.phase_space_qm.x[nstate]
+      self.aggregate.update_aggregate(psi4.core.Matrix.from_array(xyz))
 
-  def canonicalize_velocities(self, temp): pass
+  def canonicalize_velocities(self, temp): 
+      print("Warning: no Maxwell-Boltzmann distribution is applied yet")
+  def rescale_velocities(self, temp): 
+      self.phase_space_qm.rescale_velocities(temp)
+      if self.phase_space_cl is not None: self.phase_space_cl.rescale_velocities(temp)
 
   def update_aggregate(self, xyz):
       self.aggregate.set_geometry(xyz)
@@ -85,6 +125,12 @@ class System:
 
   def set_hamiltonian(self, qm_method):
       self.hamiltonian = Isolated_Hamiltonian(qm_method, self.molecule_qm)
+
+  def propagate(self, dt, init=False):
+      if init:
+         # quantum system
+         x = self.aggregate.extract_subsets(1).geometry().to_array(dense=True)
+      
 
 
 class Computer(ABC):
@@ -178,7 +224,7 @@ class Hamiltonian(ABC):
   def create(cls, molecule, method): pass
 
   def compute(self, bath_hamiltonians=None):
-      "Solve Schrodinger Equation"
+      "Solve Schrodinger Equation for Extended Molecular Aggregate"
       # unperturbed Hamiltonian
       self.computer.compute()
       # environment
@@ -211,23 +257,53 @@ class PDE_QMQM_Hamiltonian(PE_QMQM_Hamiltonian):
 
 class Dynamics:
   def __init__(self, aggregate, qm_method='myCIS', gs_method=None, dt_class=0.00005, dt_quant=None,
-                     init_state=0, max_states=4):
+                     init_state=0, max_states=4, temperature=0.0):
       self.dim = max_states
+      self.init_state = init_state
+      self.temperature = temperature
       self.dt_class = dt_class
       if dt_quant is None: dt_quant = dt_class
       self.system = System(aggregate)
       self.system.set_hamiltonian(qm_method)
-      self.ct = numpy.zeros(max_states, dtype=numpy.complex128)
-      self.ct[init_state] = 1.0
+      self.state_current  = None
+      self.state_previous = None
 
   def run(self, time):
       self._run(time)
+  def _run(self, time): 
+      self._set_initial_conditions()
+   
+      nt = time/self.dt_class
+      for i in range(nt): pass
 
-  def _run(self, time): pass
+  def _set_initial_conditions(self):
+      # amplitudes
+      self.c = numpy.zeros(self.dim, dtype=numpy.complex128)
+      self.c[self.init_state] = 1.0+0.0j
+      # density matrix
+      self._update_density_matrix()
+      # velocities
+      v = numpy.random.random((self.system.aggregate.natom(), 3))
+      self.system.aggregate.set_geometry(psi4.core.Matrix.from_array(v))
+      self.system.canonicalize_velocities(self.temperature)
+      # hamiltonian
+      self.system.hamiltonian.compute()
+      self.state_previous = self.system.hamiltonian.computer.states
+      #
+      self.system.propagate(self.dt_class, init=True)
+      self.state_current = self.system.hamiltonian.computer.states
+      # 
       
   def _step_classical(self): pass
 
+  def _compute_G(self): pass
   def _step_quantum(self, c, G): 
       g, u = numpy.linalg.eig(G)
       e = numpy.linalg.multi_dot([u, numpy.exp(-1.0j*g*self.dt_class), u.T])
       return numpy.dot(c, e)
+
+  def _density_matrix(self, c):
+      return numpy.outer(self.c, self.c.conjugate())
+  def _update_density_matrix(self):
+      self.d = self._density_matrix(self.c)
+
