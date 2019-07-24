@@ -22,15 +22,19 @@ from abc import ABC, abstractmethod
 
 
 class CIS(ABC):
+  reference_types = ['rhf', 'uhf']
   def __init__(self, mol, verbose, save_states):
       ABC.__init__(self)
       self._common_init(mol, verbose, save_states)
 
   @classmethod
   def create(cls, mol, verbose=True, save_states=4, reference='rhf'):
-      if   reference.lower() == 'rhf': return RCIS(mol, verbose, save_states)
-      elif reference.lower() == 'uhf': return UCIS(mol, verbose, save_states)
-      else: raise ValueError("Incorrect reference wavefunction type chosen. Only RHF and UHF are available")
+      if reference.lower() not in cls.reference_types:
+         raise ValueError("Incorrect reference wavefunction type chosen. Only RHF and UHF are available")
+      assert(not (reference.lower()=='rhf' and mol.multiplicity() != 1)), "RHF reference cannot be set for closed-shell system!"
+      # UCIS
+      if mol.multiplicity()!=1 or reference.lower()=='uhf': return UCIS(mol, verbose, save_states)
+      else: return RCIS(mol, verbose, save_states)
 
   def run(self):
       self._run_scf()
@@ -63,11 +67,11 @@ class CIS(ABC):
       self.Ca_vir = None
       self.Cb_vir = None
       #
-      self.eri_Oa_Va_Oa_Va = None
-      self.eri_Oa_Oa_Va_Va = None
-      self.eri_Oa_Va_Ob_Vb = None
-      self.eri_Ob_Ob_Vb_Vb = None
-      self.eri_Ob_Vb_Ob_Vb = None
+      self.eri_OVOV = None
+      self.eri_OOVV = None
+      self.eri_OVov = None
+      self.eri_oovv = None
+      self.eri_ovov = None
       #self.Da = None
       #self.Db = None
       #self.jk = None
@@ -92,8 +96,8 @@ class CIS(ABC):
       Oa = self.Ca_occ.to_array(dense=True)
       Va = self.Ca_vir.to_array(dense=True)
       #
-      self.eri_Oa_Va_Oa_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
-      self.eri_Oa_Oa_Va_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
+      self.eri_OVOV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
+      self.eri_OOVV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
       #
       #self.jk.C_clear()
       #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Da, ""))
@@ -111,6 +115,7 @@ class CIS(ABC):
       self._set_beta(H, eri)
 
   def _run_scf(self):
+      self._set_scf_reference()
       scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)
       self.scf_e = scf_e
       self.e_0   = scf_e - self.nuclear_repulsion_energy
@@ -118,6 +123,9 @@ class CIS(ABC):
 
   @abstractmethod
   def _set_beta(self, H, eri): pass
+
+  @abstractmethod
+  def _set_scf_reference(self): pass
 
   def _build_hamiltonian(self):
       # OO block
@@ -138,14 +146,14 @@ class CIS(ABC):
                       if (i==j) and (a==b): v+= self.e_0
                       if (i==j): v+= self.Fa_vir[a,b]
                       if (a==b): v-= self.Fa_occ[i,j]
-                      v += self.eri_Oa_Va_Oa_Va[i,a,j,b] - self.eri_Oa_Oa_Va_Va[i,j,a,b] 
+                      v += self.eri_OVOV[i,a,j,b] - self.eri_OOVV[i,j,a,b] 
                       #
                       self.hamiltonian[1+ia,1+jb] = v
               # block AB and BA
               for j in range(self.nbocc):
                   for b in range(self.nbvir):
                       jb = self.nbvir*j + b
-                      v  = self.eri_Oa_Va_Ob_Vb[i,a,j,b]
+                      v  = self.eri_OVov[i,a,j,b]
                       self.hamiltonian[1+ia,1+jb+off_a] = v
                       self.hamiltonian[1+jb+off_a,1+ia] = v
       if not self.same_ab:
@@ -160,12 +168,12 @@ class CIS(ABC):
                          if (i==j) and (a==b): v+= self.e_0
                          if (i==j): v+= self.Fb_vir[a,b]
                          if (a==b): v-= self.Fb_occ[i,j]
-                         v += self.eri_Ob_Vb_Ob_Vb[i,a,j,b] - self.eri_Ob_Ob_Vb_Vb[i,j,a,b] 
+                         v += self.eri_ovov[i,a,j,b] - self.eri_oovv[i,j,a,b] 
                          #
                          self.hamiltonian[1+ia+off_a,1+jb+off_a] = v
       else:
           self.hamiltonian[(1+off_a):,(1+off_a):] = self.hamiltonian[1:1+off_a,1:1+off_a]
-      del self.eri_Ob_Vb_Ob_Vb, self.eri_Oa_Va_Oa_Va, self.eri_Oa_Va_Ob_Vb, self.eri_Oa_Oa_Va_Va, self.eri_Ob_Ob_Vb_Vb
+      del self.eri_ovov, self.eri_OVOV, self.eri_OVov, self.eri_OOVV, self.eri_oovv
   def _diagonalize(self):
       t = time.time()
       E, W = numpy.linalg.eigh(self.hamiltonian)
@@ -194,6 +202,8 @@ class RCIS(CIS):
   def __init__(self, mol, verbose, save_states):
       CIS.__init__(self, mol, verbose, save_states)
       self.same_ab = True
+  def _set_scf_reference(self):
+      psi4.core.set_global_option('reference', 'rhf')
   def _set_beta(self, H, eri):
       self.Cb_occ = self.Ca_occ
       self.Cb_vir = self.Ca_vir
@@ -203,9 +213,9 @@ class RCIS(CIS):
       self.ndet = 1 + self.naocc * self.navir + self.nbocc * self.nbvir
       self.hamiltonian = numpy.zeros((self.ndet, self.ndet),numpy.float64)
       #
-      self.eri_Ob_Vb_Ob_Vb = self.eri_Oa_Va_Oa_Va
-      self.eri_Oa_Va_Ob_Vb = self.eri_Oa_Va_Oa_Va
-      self.eri_Ob_Ob_Vb_Vb = self.eri_Oa_Oa_Va_Va
+      self.eri_ovov = self.eri_OVOV
+      self.eri_OVov = self.eri_OVOV
+      self.eri_oovv = self.eri_OOVV
       self.Fb_occ = self.Fa_occ
       self.Fb_vir = self.Fa_vir
 
@@ -213,6 +223,8 @@ class UCIS(CIS):
   def __init__(self, mol, verbose, save_states):
       CIS.__init__(self, mol, verbose, save_states)
       self.same_ab = False
+  def _set_scf_reference(self):
+      psi4.core.set_global_option('reference', 'uhf')
   def _set_beta(self, H, eri):
       self.Cb_occ = self.ref_wfn.Cb_subset("AO","OCC")
       self.Cb_vir = self.ref_wfn.Cb_subset("AO","VIR")
@@ -227,9 +239,9 @@ class UCIS(CIS):
       Ob = self.Cb_occ.to_array(dense=True)
       Vb = self.Cb_vir.to_array(dense=True)
       #
-      self.eri_Ob_Vb_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
-      self.eri_Oa_Va_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
-      self.eri_Ob_Ob_Vb_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
+      self.eri_ovov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
+      self.eri_OVov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
+      self.eri_oovv = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
       #
       #self.jk.C_clear()
       #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Db, ""))
@@ -300,11 +312,11 @@ class CIS_f:
       Va = self.Ca_vir.to_array(dense=True)
       Vb = self.Cb_vir.to_array(dense=True)
       #
-      self.eri_Oa_Va_Oa_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
-      self.eri_Ob_Vb_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
-      self.eri_Oa_Va_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
-      self.eri_Oa_Oa_Va_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
-      self.eri_Ob_Ob_Vb_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
+      self.eri_OVOV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
+      self.eri_ovov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
+      self.eri_OVov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
+      self.eri_OOVV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
+      self.eri_oovv = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
       #
       #H = self.ref_wfn.H().to_array(dense=True)
       #
@@ -354,13 +366,13 @@ class CIS_f:
                       if (i==j) and (a==b): v+= self.e_0
                       if (i==j): v+= self.Fa_vir[a,b]
                       if (a==b): v-= self.Fa_occ[i,j]
-                      v += self.eri_Oa_Va_Oa_Va[i,a,j,b] - self.eri_Oa_Oa_Va_Va[i,j,a,b] 
+                      v += self.eri_OVOV[i,a,j,b] - self.eri_OOVV[i,j,a,b] 
                       #
                       self.hamiltonian[1+ia,1+jb] = v
               for j in range(self.nbocc):
                   for b in range(self.nbvir):
                       jb = (self.nbvir)*j + b
-                      v = self.eri_Oa_Va_Ob_Vb[i,a,j,b]
+                      v = self.eri_OVov[i,a,j,b]
                       self.hamiltonian[1+ia,1+jb+off_a] = v
                       self.hamiltonian[1+jb+off_a,1+ia] = v
       for i in range(self.nbocc):
@@ -373,10 +385,10 @@ class CIS_f:
                       if (i==j) and (a==b): v+= self.e_0
                       if (i==j): v+= self.Fb_vir[a,b]
                       if (a==b): v-= self.Fb_occ[i,j]
-                      v += self.eri_Ob_Vb_Ob_Vb[i,a,j,b] - self.eri_Ob_Ob_Vb_Vb[i,j,a,b] 
+                      v += self.eri_ovov[i,a,j,b] - self.eri_oovv[i,j,a,b] 
                       #
                       self.hamiltonian[1+ia+off_a,1+jb+off_a] = v
-      del self.eri_Ob_Vb_Ob_Vb, self.eri_Oa_Va_Oa_Va, self.eri_Oa_Va_Ob_Vb
+      del self.eri_ovov, self.eri_OVOV, self.eri_OVov
   def _diagonalize(self):
       E, W = numpy.linalg.eigh(self.hamiltonian)
       self.E = E
