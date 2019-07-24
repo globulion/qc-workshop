@@ -62,22 +62,28 @@ class CIS(ABC):
       self.Cb_occ = None
       self.Ca_vir = None
       self.Cb_vir = None
-      self.Da = None
-      self.Db = None
-      self.jk = None
+      #
+      self.eri_Oa_Va_Oa_Va = None
+      self.eri_Oa_Oa_Va_Va = None
+      self.eri_Oa_Va_Ob_Vb = None
+      self.eri_Ob_Ob_Vb_Vb = None
+      self.eri_Ob_Vb_Ob_Vb = None
+      #self.Da = None
+      #self.Db = None
+      #self.jk = None
       #
       self.same_ab = None
   def _prepare_for_cis(self):
       self.Ca_occ = self.ref_wfn.Ca_subset("AO","OCC")
       self.Ca_vir = self.ref_wfn.Ca_subset("AO","VIR")
-      self.Da = self.ref_wfn.Da()
+      #self.Da = self.ref_wfn.Da()
       self.nmo = self.ref_wfn.nmo()
       self.naocc = self.ref_wfn.nalpha()
       self.navir = self.nmo - self.naocc
       #
-      self.jk = psi4.core.JK.build(self.ref_wfn.basisset(), jk_type='direct')
-      self.jk.set_memory(int(5e8))
-      self.jk.initialize()
+      #self.jk = psi4.core.JK.build(self.ref_wfn.basisset(), jk_type='direct')
+      #self.jk.set_memory(int(5e8))
+      #self.jk.initialize()
       #
       mints = psi4.core.MintsHelper(self.ref_wfn.basisset())
       eri = numpy.asarray(mints.ao_eri())
@@ -87,20 +93,22 @@ class CIS(ABC):
       Va = self.Ca_vir.to_array(dense=True)
       #
       self.eri_Oa_Va_Oa_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
+      self.eri_Oa_Oa_Va_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
       #
-      self.jk.C_clear()
-      self.jk.C_left_add(psi4.core.Matrix.from_array(self.Da, ""))
-      I = numpy.identity(self.Da.shape[0], numpy.float64)
-      self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
-      self.jk.compute()
-      Ja= self.jk.J()[0].to_array(dense=True)
-      Ka= self.jk.K()[0].to_array(dense=True)
-      #
-      Ga = H+2.0*Ja-Ka
+      #self.jk.C_clear()
+      #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Da, ""))
+      #I = numpy.identity(self.Da.shape[0], numpy.float64)
+      #self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
+      #self.jk.compute()
+      #Ja= self.jk.J()[0].to_array(dense=True)
+      #Ka= self.jk.K()[0].to_array(dense=True)
+      ##
+      #Ga = H+2.0*Ja-Ka
+      Ga = self.ref_wfn.Fa().to_array(dense=True)
       self.Fa_occ = numpy.einsum("ai,ab,bj->ij", Oa, Ga, Oa)
       self.Fa_vir = numpy.einsum("ai,ab,bj->ij", Va, Ga, Va)
       #
-      self._set_beta(H, eri, Ja)
+      self._set_beta(H, eri)
 
   def _run_scf(self):
       scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)
@@ -109,7 +117,7 @@ class CIS(ABC):
       self.ref_wfn = wfn
 
   @abstractmethod
-  def _set_beta(self, H, eri, Ja): pass
+  def _set_beta(self, H, eri): pass
 
   def _build_hamiltonian(self):
       # OO block
@@ -121,40 +129,43 @@ class CIS(ABC):
       off_b = self.nbocc*self.nbvir
       for i in range(self.naocc):
           for a in range(self.navir):
-              ia = (self.navir)*i + a
+              ia = self.navir*i + a
+              # block AA
               for j in range(self.naocc):
                   for b in range(self.navir):
-                      jb = (self.navir)*j + b
+                      jb = self.navir*j + b
                       v = 0.0
                       if (i==j) and (a==b): v+= self.e_0
                       if (i==j): v+= self.Fa_vir[a,b]
                       if (a==b): v-= self.Fa_occ[i,j]
-                      v += self.eri_Oa_Va_Oa_Va[i,a,j,b] - self.eri_Oa_Va_Oa_Va[j,a,i,b] 
+                      v += self.eri_Oa_Va_Oa_Va[i,a,j,b] - self.eri_Oa_Oa_Va_Va[i,j,a,b] 
                       #
                       self.hamiltonian[1+ia,1+jb] = v
+              # block AB and BA
               for j in range(self.nbocc):
                   for b in range(self.nbvir):
-                      jb = (self.nbvir)*j + b
-                      v = self.eri_Oa_Va_Ob_Vb[i,a,j,b]
+                      jb = self.nbvir*j + b
+                      v  = self.eri_Oa_Va_Ob_Vb[i,a,j,b]
                       self.hamiltonian[1+ia,1+jb+off_a] = v
                       self.hamiltonian[1+jb+off_a,1+ia] = v
       if not self.same_ab:
          for i in range(self.nbocc):                                                         
              for a in range(self.nbvir):
-                 ia = (self.nbvir)*i + a
+                 ia = self.nbvir*i + a
+                 # block BB
                  for j in range(self.nbocc):
                      for b in range(self.nbvir):
-                         jb = (self.nbvir)*j + b
+                         jb = self.nbvir*j + b
                          v = 0.0
                          if (i==j) and (a==b): v+= self.e_0
                          if (i==j): v+= self.Fb_vir[a,b]
                          if (a==b): v-= self.Fb_occ[i,j]
-                         v += self.eri_Ob_Vb_Ob_Vb[i,a,j,b] - self.eri_Ob_Vb_Ob_Vb[j,a,i,b] 
+                         v += self.eri_Ob_Vb_Ob_Vb[i,a,j,b] - self.eri_Ob_Ob_Vb_Vb[i,j,a,b] 
                          #
                          self.hamiltonian[1+ia+off_a,1+jb+off_a] = v
       else:
           self.hamiltonian[(1+off_a):,(1+off_a):] = self.hamiltonian[1:1+off_a,1:1+off_a]
-      del self.eri_Ob_Vb_Ob_Vb, self.eri_Oa_Va_Oa_Va, self.eri_Oa_Va_Ob_Vb
+      del self.eri_Ob_Vb_Ob_Vb, self.eri_Oa_Va_Oa_Va, self.eri_Oa_Va_Ob_Vb, self.eri_Oa_Oa_Va_Va, self.eri_Ob_Ob_Vb_Vb
   def _diagonalize(self):
       t = time.time()
       E, W = numpy.linalg.eigh(self.hamiltonian)
@@ -183,10 +194,10 @@ class RCIS(CIS):
   def __init__(self, mol, verbose, save_states):
       CIS.__init__(self, mol, verbose, save_states)
       self.same_ab = True
-  def _set_beta(self, H, eri, Ja):
+  def _set_beta(self, H, eri):
       self.Cb_occ = self.Ca_occ
       self.Cb_vir = self.Ca_vir
-      self.Db = self.Da
+      #self.Db = self.Da
       self.nbocc = self.naocc
       self.nbvir = self.navir
       self.ndet = 1 + self.naocc * self.navir + self.nbocc * self.nbvir
@@ -194,6 +205,7 @@ class RCIS(CIS):
       #
       self.eri_Ob_Vb_Ob_Vb = self.eri_Oa_Va_Oa_Va
       self.eri_Oa_Va_Ob_Vb = self.eri_Oa_Va_Oa_Va
+      self.eri_Ob_Ob_Vb_Vb = self.eri_Oa_Oa_Va_Va
       self.Fb_occ = self.Fa_occ
       self.Fb_vir = self.Fa_vir
 
@@ -201,7 +213,7 @@ class UCIS(CIS):
   def __init__(self, mol, verbose, save_states):
       CIS.__init__(self, mol, verbose, save_states)
       self.same_ab = False
-  def _set_beta(self, H, eri, Ja):
+  def _set_beta(self, H, eri):
       self.Cb_occ = self.ref_wfn.Cb_subset("AO","OCC")
       self.Cb_vir = self.ref_wfn.Cb_subset("AO","VIR")
       self.Db = self.ref_wfn.Db()
@@ -217,16 +229,18 @@ class UCIS(CIS):
       #
       self.eri_Ob_Vb_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
       self.eri_Oa_Va_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
+      self.eri_Ob_Ob_Vb_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
       #
-      self.jk.C_clear()
-      self.jk.C_left_add(psi4.core.Matrix.from_array(self.Db, ""))
-      I = numpy.identity(self.Da.shape[0], numpy.float64)
-      self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
-      self.jk.compute()
-      Jb= self.jk.J()[0].to_array(dense=True)
-      Kb= self.jk.K()[0].to_array(dense=True)
-      #
-      Gb = H + Ja + Jb - Kb
+      #self.jk.C_clear()
+      #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Db, ""))
+      #I = numpy.identity(self.Da.shape[0], numpy.float64)
+      #self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
+      #self.jk.compute()
+      #Jb= self.jk.J()[0].to_array(dense=True)
+      #Kb= self.jk.K()[0].to_array(dense=True)
+      ##
+      #Gb = H + Ja + Jb - Kb
+      Gb = self.ref_wfn.Fb().to_array(dense=True)
       self.Fb_occ = numpy.einsum("ai,ab,bj->ij", Ob, Gb, Ob)
       self.Fb_vir = numpy.einsum("ai,ab,bj->ij", Vb, Gb, Vb)
 
@@ -289,33 +303,35 @@ class CIS_f:
       self.eri_Oa_Va_Oa_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
       self.eri_Ob_Vb_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
       self.eri_Oa_Va_Ob_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
+      self.eri_Oa_Oa_Va_Va = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
+      self.eri_Ob_Ob_Vb_Vb = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
       #
-      H = self.ref_wfn.H().to_array(dense=True)
-      self.Fa_occ = numpy.einsum("ai,ab,bj->ij", Oa, H, Oa)
-      self.Fa_vir = numpy.einsum("ai,ab,bj->ij", Va, H, Va)
-      self.Fb_occ = numpy.einsum("ai,ab,bj->ij", Ob, H, Ob)
-      self.Fb_vir = numpy.einsum("ai,ab,bj->ij", Vb, H, Vb)
+      #H = self.ref_wfn.H().to_array(dense=True)
       #
-      self.jk.C_clear()
-      self.jk.C_left_add(psi4.core.Matrix.from_array(self.Da, ""))
-      I = numpy.identity(self.Da.shape[0], numpy.float64)
-      self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
-      self.jk.compute()
-      Ja= self.jk.J()[0].to_array(dense=True)
-      Ka= self.jk.K()[0].to_array(dense=True)
+      #self.jk.C_clear()
+      #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Da, ""))
+      #I = numpy.identity(self.Da.shape[0], numpy.float64)
+      #self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
+      #self.jk.compute()
+      #Ja= self.jk.J()[0].to_array(dense=True)
+      #Ka= self.jk.K()[0].to_array(dense=True)
+      ##
+      #self.jk.C_clear()
+      #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Db, ""))
+      #self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
+      #self.jk.compute()
+      #Jb= self.jk.J()[0].to_array(dense=True)
+      #Kb= self.jk.K()[0].to_array(dense=True)
       #
-      self.jk.C_clear()
-      self.jk.C_left_add(psi4.core.Matrix.from_array(self.Db, ""))
-      self.jk.C_right_add(psi4.core.Matrix.from_array(I, ""))
-      self.jk.compute()
-      Jb= self.jk.J()[0].to_array(dense=True)
-      Kb= self.jk.K()[0].to_array(dense=True)
-      #
-      self.Fa_occ += numpy.einsum("ai,ab,bj->ij", Oa, Ja+Jb-Ka, Oa)
-      #              -numpy.einsum("ai,ab,bj->ij", Oa, Ka   , Oa)
-      self.Fa_vir += numpy.einsum("ai,ab,bj->ij", Va, Ja+Jb-Ka, Va)
-      self.Fb_occ += numpy.einsum("ai,ab,bj->ij", Ob, Ja+Jb-Kb, Ob)
-      self.Fb_vir += numpy.einsum("ai,ab,bj->ij", Vb, Ja+Jb-Kb, Vb)
+      #Fa = H+Ja+Jb-Ka
+      #Fb = Fa+Ka-Kb
+      #print(Fa, self.ref_wfn.Fa().to_array(dense=True))
+      Fa = self.ref_wfn.Fa().to_array(dense=True)
+      Fb = self.ref_wfn.Fb().to_array(dense=True)
+      self.Fa_occ = numpy.einsum("ai,ab,bj->ij", Oa, Fa, Oa)
+      self.Fa_vir = numpy.einsum("ai,ab,bj->ij", Va, Fa, Va)
+      self.Fb_occ = numpy.einsum("ai,ab,bj->ij", Ob, Fb, Ob)
+      self.Fb_vir = numpy.einsum("ai,ab,bj->ij", Vb, Fb, Vb)
   def _run_scf(self):
       scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)
       self.scf_e = scf_e
@@ -338,7 +354,7 @@ class CIS_f:
                       if (i==j) and (a==b): v+= self.e_0
                       if (i==j): v+= self.Fa_vir[a,b]
                       if (a==b): v-= self.Fa_occ[i,j]
-                      v += self.eri_Oa_Va_Oa_Va[i,a,j,b] - self.eri_Oa_Va_Oa_Va[j,a,i,b] 
+                      v += self.eri_Oa_Va_Oa_Va[i,a,j,b] - self.eri_Oa_Oa_Va_Va[i,j,a,b] 
                       #
                       self.hamiltonian[1+ia,1+jb] = v
               for j in range(self.nbocc):
@@ -357,7 +373,7 @@ class CIS_f:
                       if (i==j) and (a==b): v+= self.e_0
                       if (i==j): v+= self.Fb_vir[a,b]
                       if (a==b): v-= self.Fb_occ[i,j]
-                      v += self.eri_Ob_Vb_Ob_Vb[i,a,j,b] - self.eri_Ob_Vb_Ob_Vb[j,a,i,b] 
+                      v += self.eri_Ob_Vb_Ob_Vb[i,a,j,b] - self.eri_Ob_Ob_Vb_Vb[i,j,a,b] 
                       #
                       self.hamiltonian[1+ia+off_a,1+jb+off_a] = v
       del self.eri_Ob_Vb_Ob_Vb, self.eri_Oa_Va_Oa_Va, self.eri_Oa_Va_Ob_Vb
