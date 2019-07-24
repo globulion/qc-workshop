@@ -6,41 +6,6 @@ from abc import ABC, abstractmethod
 import psi4
 import numpy
 
-class MCWavefunction:
-  def __init__(self, ci_e, ci_c, ci_l, ca, cb, bfs): 
-      self.ci_e = ci_e
-      self.ci_c = ci_c
-      self.ci_l = ci_l
-      self.ca   = ca
-      self.cb   = cb
-      self.bfs  = bfs
-      self.ndet = len(ci_l)
-  def overlap(self, other):
-      assert(self.ndet == other.ndet)
-      s_nm  = self._overlap_between_slater_determinants(other)
-      S_IJ  = numpy.linalg.multi_dot([self.ci_c.T, s_nm, other.ci_c])
-      return S_IJ
-  def _overlap_between_slater_determinants(self, other):
-      # overlap between AO's
-      mints = psi4.core.MintsHelper(self.bfs)
-      s_ao  = mints.ao_overlap(self.bfs, other.bfs) 
-      #
-      S_nm  = numpy.zeros((self.ndet, other.det), numpy.float64)
-      # sum over all Slater determinants
-      for n in range(self.ndet):
-          cai, cbi = self._construct_c(n)
-          for m in range(other.ndet):
-              caj, cbj = other._construct_c(m)
-              D_ij_a = numpy.linalg.multi_dot(cai.T, sab, caj)
-              D_ij_b = numpy.linalg.multi_dot(cbi.T, sab, cbj)
-              S[n,m] = numpy.linalg.det(D_ij_a) * numpy.linalg.det(D_ij_b)
-      return S_nm
-  def _construct_c(self, n):
-      o, v = self.ci_l[n]
-      ca   = self.ca.copy()
-      cb   = self.cb.copy()
-          
-      return ca, cb
 
 class TimePoint:
   def __init__(self, x, v, f, s=None):
@@ -129,6 +94,8 @@ class Computer(ABC):
       self.molecule = molecule
       self.nuclear_repulsion_energy = molecule.nuclear_repulsion_energy()
       #
+      self.states = None
+      #
       self.state_amplitudes = None
       self.state_energies = None
       self.state_forces = None
@@ -182,16 +149,22 @@ class psiSCF_Computer(Computer):
       E = numpy.array([e - self.molecule.nuclear_repulsion_energy()])
       return E, W
 
-class CIS_Computer(Computer):
+class ExcitedState_Computer(Computer):
   def __init__(self, molecule):
-      Computer.__init__(self, molecule) 
+      Computer.__init__(self, molecule)
+
+class CIS_Computer(ExcitedState_Computer):
+  def __init__(self, molecule):
+      ExcitedState_Computer.__init__(self, molecule) 
 
 class myCIS_Computer(CIS_Computer):
   def __init__(self, molecule):
       CIS_Computer.__init__(self, molecule)
   def _compute_energy(self):
       import lib.cis
-      cis = lib.cis.CIS(self.molecule, verbose=False, save_states=4)
+      cis = lib.cis.CIS.create(self.molecule, verbose=False, save_states=4, reference='rhf')
+      cis.run()
+      self.states = cis
       return cis.E, cis.W
 
 class Hamiltonian(ABC):

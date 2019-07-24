@@ -20,6 +20,72 @@ import numpy
 import psi4
 from abc import ABC, abstractmethod
 
+class MCState:
+  "Multiconfigurational state composed of Slater determinants as basis set"
+  def __init__(self, state): 
+      self.ci_e = state.E.copy()
+      self.ci_c = state.W.copy()
+      self.ci_l = state.get_ci_l()
+      self.ca_o = state.Ca_occ.to_array(dense=True)
+      self.cb_o = state.Cb_occ.to_array(dense=True)
+      self.ca_v = state.Ca_vir.to_array(dense=True)
+      self.cb_v = state.Cb_vir.to_array(dense=True)
+      self.bfs  = state.ref_wfn.basisset()
+      self.ndet = state.ndet
+  def overlap(self, other):
+      assert(self.ndet == other.ndet)
+      s_nm  = self._overlap_between_slater_determinants(other)
+      S_IJ  = numpy.linalg.multi_dot([self.ci_c.T, s_nm, other.ci_c])
+      print(numpy.dot(self.ci_c.T, other.ci_c))
+      return S_IJ
+  def _overlap_between_slater_determinants(self, other):
+      # overlap between AO's
+      mints = psi4.core.MintsHelper(self.bfs)
+      s_ao  = mints.ao_overlap(self.bfs, other.bfs) 
+      #
+      S_nm  = numpy.zeros((self.ndet, other.ndet), numpy.float64)
+      # sum over all Slater determinants
+      for n in range(self.ndet):
+          cai, cbi = self._construct_c(n)
+          for m in range(other.ndet):
+              caj, cbj = other._construct_c(m)
+              D_ij_a = numpy.linalg.multi_dot([cai.T, s_ao, caj])
+              D_ij_b = numpy.linalg.multi_dot([cbi.T, s_ao, cbj])
+              S_nm[n,m] = numpy.linalg.det(D_ij_a) * numpy.linalg.det(D_ij_b)
+      return numpy.abs(S_nm)
+  def _construct_c(self, n):
+      det = self.ci_l[n]
+      ca  = self.ca_o.copy()
+      cb  = self.cb_o.copy()
+      if det.is_reference: return ca, cb
+      if det.is_single:
+         if det.change_alpha: ca[:,det.rule[0]] = self.ca_v[:,det.rule[1]]
+         else:                cb[:,det.rule[0]] = self.cb_v[:,det.rule[1]]
+      if det.is_double: raise NotImplementedError
+      return ca, cb
+
+class SlaterDeterminant(ABC):
+  def __init__(self, nao, nbo, nmo, rule):
+      ABC.__init__(self)
+      self.is_reference = False
+      self.is_single    = False
+      self.is_double    = False
+      self.is_triple    = False
+      self.rule = rule
+      self.nao = nao
+      self.nbo = nbo
+      self.nav = nmo - nao
+      self.nbv = nmo - nbo
+      self.nmo = nmo
+class Reference_SlaterDeterminant(SlaterDeterminant):
+  def __init__(self, nao, nbo, nmo):
+      SlaterDeterminant.__init__(self, nao, nbo, nmo, rule=())
+      self.is_reference = True
+class Single_SlaterDeterminant(SlaterDeterminant):
+  def __init__(self, nao, nbo, nmo, rule):
+      SlaterDeterminant.__init__(self, nao, nbo, nmo, rule)
+      self.is_single = True
+      self.change_alpha = True if self.rule[0] > 0 else False
 
 class CIS(ABC):
   reference_types = ['rhf', 'uhf']
@@ -28,7 +94,7 @@ class CIS(ABC):
       self._common_init(mol, verbose, save_states)
 
   @classmethod
-  def create(cls, mol, verbose=True, save_states=4, reference='rhf'):
+  def create(cls, mol, verbose=True, save_states=None, reference='rhf'):
       if reference.lower() not in cls.reference_types:
          raise ValueError("Incorrect reference wavefunction type chosen. Only RHF and UHF are available")
       assert(not (reference.lower()=='rhf' and mol.multiplicity() != 1)), "RHF reference cannot be set for closed-shell system!"
@@ -77,6 +143,7 @@ class CIS(ABC):
       #self.jk = None
       #
       self.same_ab = None
+      self.ci_l = None
   def _prepare_for_cis(self):
       self.Ca_occ = self.ref_wfn.Ca_subset("AO","OCC")
       self.Ca_vir = self.ref_wfn.Ca_subset("AO","VIR")
@@ -114,6 +181,20 @@ class CIS(ABC):
       #
       self._set_beta(H, eri)
 
+  def get_ci_l(self):
+      dets = []
+      dets.append(Reference_SlaterDeterminant(self.naocc, self.nbocc, self.nmo))
+      for i in range(self.naocc):
+          for a in range(self.navir):
+              rule = (i,a)
+              det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
+              dets.append(det)
+      for i in range(self.nbocc):
+          for a in range(self.nbvir):
+              rule = (-i,-a)
+              det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
+              dets.append(det)
+      return dets
   def _run_scf(self):
       self._set_scf_reference()
       scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)
@@ -177,6 +258,9 @@ class CIS(ABC):
   def _diagonalize(self):
       t = time.time()
       E, W = numpy.linalg.eigh(self.hamiltonian)
+      if self.save_states is not None:
+         E = E[  :(self.save_states+1)]
+         W = W[:,:(self.save_states+1)]
       self.E = E
       self.W = W
       # 
