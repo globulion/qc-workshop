@@ -19,7 +19,7 @@ import numpy
 import psi4
 from abc import ABC, abstractmethod
 
-np.set_printoptions(precision=5, linewidth=200, suppress=True)
+#numpy.set_printoptions(precision=3, linewidth=200, suppress=True)
 
 __all__ = ["MCState", 
            "SlaterDeterminant",
@@ -46,7 +46,6 @@ class MCState:
       assert(self.ndet == other.ndet)
       s_nm  = self._overlap_between_slater_determinants(other)
       S_IJ  = numpy.linalg.multi_dot([self.ci_c.T, s_nm, other.ci_c])
-      print(numpy.dot(self.ci_c.T, other.ci_c))
       return S_IJ
   def _overlap_between_slater_determinants(self, other):
       # overlap between AO's
@@ -204,7 +203,7 @@ class CIS(ABC):
               rule = (-i,-a)
               det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
               dets.append(det)
-      return dets[:(self.save_states+1)]
+      return dets
   def _run_scf(self):
       self._set_scf_reference()
       scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)

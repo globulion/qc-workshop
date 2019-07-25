@@ -7,13 +7,13 @@ within molecular systems.
 
 The total charge of a molecule is a sum of atomic and electronic charge
 
-<img src="../figures/equations/charge-tot.png" height="50"/>
+<img src="../../doc/figures/equations/charge-tot.png" height="50"/>
 
 where the total electronic charge
 can be expressed in terms of the
 bond order matrix **P** according to
 
-<img src="../figures/equations/charge-el.png" height="50"/>
+<img src="../../doc/figures/equations/charge-el.png" height="50"/>
 
 Note that the parameter kappa is arbitrary within the limits imposed.
 
@@ -21,7 +21,7 @@ Note that the parameter kappa is arbitrary within the limits imposed.
 
 The atomic charge can be defined as
 
-<img src="../figures/equations/charge-partial.atom.png" height="50"/>
+<img src="../../doc/figures/equations/charge-partial.atom.png" height="50"/>
 
 Therefore, it is clear that there exist infinite ways to obtain
 a set of partial atomic charges.
