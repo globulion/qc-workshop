@@ -113,3 +113,38 @@ class Loc:
           r2 = numpy.array([ri2xx,ri2xy,ri2xz,ri2yy,ri2yz,ri2zz])
           Qb[i] += r2
       return Qa, Qb
+  def __repr__(self):
+      "Print LMO centroids and LMO quadrupole moments"
+      la, lb = self.lmoc()
+      Qa, Qb = self.el_quadrupoles()
+      # convert units to angs and debye*angs
+      la*= psi4.constants.bohr2angstroms
+      lb*= psi4.constants.bohr2angstroms
+      Qa*= psi4.constants.bohr2angstroms*psi4.constants.dipmom_au2debye
+      Qb*= psi4.constants.bohr2angstroms*psi4.constants.dipmom_au2debye
+      #
+      log = " \n"
+      log+= " Localized Orbital Centroids and Quadrupole Moments (Loc = %s)\n" % self.method.upper()
+      log+= " Orbital  r_i [Angs]                         Q_i [Debye Angs]\n" 
+      log+= " <alpha>\n"
+      for i in range(self.wfn.nalpha()):
+          log += "%2da   " % (i+1)
+          log += " %8.3f %8.3f %8.3f     " % tuple(la[i])
+          log += " %11.3f %11.3f %11.3f   \n" % tuple(Qa[i,:3])
+          log += " "*38
+          log += " %11.3f %11.3f %11.3f   \n" % (Qa[i,1], Qa[i,3], Qa[i,4])
+          log += " "*38
+          log += " %11.3f %11.3f %11.3f   \n" % (Qa[i,2], Qa[i,4], Qa[i,5])
+          log += "\n"
+      log+= " <beta>\n"
+      for i in range(self.wfn.nbeta ()):
+          log += "%2db   " % (i+1)
+          log += " %8.3f %8.3f %8.3f     " % tuple(lb[i])
+          log += " %11.3f %11.3f %11.3f   \n" % tuple(Qb[i,:3])
+          log += " "*38
+          log += " %11.3f %11.3f %11.3f   \n" % (Qb[i,1], Qb[i,3], Qb[i,4])
+          log += " "*38
+          log += " %11.3f %11.3f %11.3f   \n" % (Qb[i,2], Qb[i,4], Qb[i,5])
+          log += "\n"
+
+      return str(log)

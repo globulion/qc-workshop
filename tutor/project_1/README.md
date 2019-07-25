@@ -156,6 +156,10 @@ following prescription:
 
 <img src="../../doc/figures/equations/quad-n.png" height="30"/>
 
+where
+
+<img src="../../doc/figures/equations/delta-r.png" height="40"/>
+
 But due to the properties of the localized orbitals the above equation simplifies to
 
 <img src="../../doc/figures/equations/quad-n-lmoc.png" height="20"/>
