@@ -154,9 +154,11 @@ of coordinate system is
 Any quadrupole moment can be recentered to a new origin according to the
 following prescription:
 
-<img src="../../doc/figures/equations/quad-n.png" height="20"/>
+<img src="../../doc/figures/equations/quad-n.png" height="30"/>
 
 But due to the properties of the localized orbitals the above equation simplifies to
 
 <img src="../../doc/figures/equations/quad-n-lmoc.png" height="20"/>
+
+
 

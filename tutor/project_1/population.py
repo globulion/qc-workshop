@@ -70,3 +70,46 @@ class Loc:
           lmoc_a[:,z] = la_z
           lmoc_b[:,z] = lb_z
       return lmoc_a, lmoc_b
+  def el_charges(self):
+      qa = -numpy.ones(self.wfn.nalpha(), dtype=numpy.float64)
+      qb = -numpy.ones(self.wfn.nbeta (), dtype=numpy.float64)
+      return qa, qb
+  def el_dipoles(self): 
+      da = 0; db=0
+      da = -numpy.zeros((self.wfn.nalpha(),3), dtype=numpy.float64)
+      db = -numpy.zeros((self.wfn.nbeta (),3), dtype=numpy.float64)
+      return da, db
+  def el_quadrupoles(self):
+      Qa = -numpy.zeros((self.wfn.nalpha(),6), dtype=numpy.float64)
+      Qb = -numpy.zeros((self.wfn.nbeta (),6), dtype=numpy.float64)
+      # compute quadrupole integrals
+      mints = psi4.core.MintsHelper(self.wfn.basisset())
+      D = mints.ao_quadrupole()
+      # compute quadrupoles
+      for z in range(6):
+          la_z = +numpy.einsum("ai,bi,ab->i", self.La, self.La, D[z])
+          lb_z = +numpy.einsum("ai,bi,ab->i", self.Lb, self.Lb, D[z])
+          Qa[:,z] = la_z
+          Qb[:,z] = lb_z
+      la, lb = self.lmoc()
+      for i in range(self.wfn.nalpha()):
+          ri2 = numpy.outer(la[i], la[i]) 
+          ri2xx = ri2[0,0]
+          ri2xy = ri2[0,1]
+          ri2xz = ri2[0,2]
+          ri2yy = ri2[1,1]
+          ri2yz = ri2[1,2]
+          ri2zz = ri2[2,2]
+          r2 = numpy.array([ri2xx,ri2xy,ri2xz,ri2yy,ri2yz,ri2zz])
+          Qa[i] += r2
+      for i in range(self.wfn.nbeta()):
+          ri2 = numpy.outer(lb[i], lb[i]) 
+          ri2xx = ri2[0,0]
+          ri2xy = ri2[0,1]
+          ri2xz = ri2[0,2]
+          ri2yy = ri2[1,1]
+          ri2yz = ri2[1,2]
+          ri2zz = ri2[2,2]
+          r2 = numpy.array([ri2xx,ri2xy,ri2xz,ri2yy,ri2yz,ri2zz])
+          Qb[i] += r2
+      return Qa, Qb
