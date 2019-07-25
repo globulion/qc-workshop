@@ -45,7 +45,19 @@ a reference to `psi4.core.Matrix` object.
 Next step is to compute the product 
 <img src="../../doc/figures/equations/sps.png" height="20"/>, and then to partition the diagonal
 elements according to the groups that are associated with particular atom.
-The first step requires computing the power of a matrix which is given by
+The first step requires computing the power of a matrix which can be computed from
+the expression for a *matrix function* according to
+
+<img src="../../doc/figures/equations/matrix-function.png" height="50"/>
+
+where **a** is the diagonal matrix of eigenvalues of **A** whereas **U** is the eigenvector matrix
+with each column corresponding to a particular eigenvalue. The matrix function of a diagonal
+matrix is simply a function of its diagonal elements, i.e.,
+
+<img src="../../doc/figures/equations/matrix-function-eig.png" height="50"/>
+
+Note that in our case, a matrix function is taking it to a power of kappa (or 1-kappa, respectively).
+
 
 ## Localized orbital population analysis
 
