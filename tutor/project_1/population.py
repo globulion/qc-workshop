@@ -2,8 +2,11 @@
 """
  Module for population analyses
 """
+import psi4
 import numpy
 from ..psithon.util import matrix_power
+
+__all__ = ["atomic_charges", "Loc"]
 
 def atomic_charges(wfn, kappa=0.0):
     """
@@ -39,3 +42,31 @@ def atomic_charges(wfn, kappa=0.0):
         x = bfs.function_to_center(i)
         charges[x] -= G[i,i]
     return charges
+
+class Loc:
+  def __init__(self, wfn, method='BOYS'):
+      self.wfn = wfn
+      self.method = method
+      localizer_a = psi4.core.Localizer.build(method, wfn.basisset(), wfn.Ca_subset("AO","OCC"))
+      localizer_b = psi4.core.Localizer.build(method, wfn.basisset(), wfn.Cb_subset("AO","OCC"))
+      localizer_a.localize()
+      localizer_b.localize()
+      self.La = localizer_a.L
+      self.Lb = localizer_b.L
+      self.Ua = localizer_a.U
+      self.Ub = localizer_b.U
+  def lmoc(self):
+      "Compute LMO centroids" 
+      # initialize
+      lmoc_a = numpy.zeros((self.wfn.nalpha(), 3), dtype=numpy.float64)
+      lmoc_b = numpy.zeros((self.wfn.nbeta (), 3), dtype=numpy.float64)
+      # compute dipole integrals
+      mints = psi4.core.MintsHelper(self.wfn.basisset())
+      D = mints.ao_dipole()
+      # compute centroids
+      for z in range(3):
+          la_z = -numpy.einsum("ai,bi,ab->i", self.La, self.La, D[z])
+          lb_z = -numpy.einsum("ai,bi,ab->i", self.Lb, self.Lb, D[z])
+          lmoc_a[:,z] = la_z
+          lmoc_b[:,z] = lb_z
+      return lmoc_a, lmoc_b
