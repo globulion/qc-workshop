@@ -95,7 +95,7 @@ The above methods search for a unitary transformation matrix **U** that
 localizes given molecular orbitals **C** in terms of a certain criterion.
 The localized orbitals **L** are linear combination of old orbitals, i.e.,
 
-<img src="../../doc/figures/equations/loc.png" height="10"/>
+<img src="../../doc/figures/equations/loc.png" height="18"/>
 
 Note that in the case of the single reference wavefunction 
 the electronic charge on each of such (occupied) orbitals will be equal -1.
@@ -154,6 +154,9 @@ of coordinate system is
 Any quadrupole moment can be recentered to a new origin according to the
 following prescription:
 
-<img src="../../doc/figures/equations/quad-o.png" height="20"/>
+<img src="../../doc/figures/equations/quad-n.png" height="20"/>
 
+But due to the properties of the localized orbitals the above equation simplifies to
+
+<img src="../../doc/figures/equations/quad-n-lmoc.png" height="20"/>
 
