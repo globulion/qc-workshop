@@ -95,13 +95,65 @@ The above methods search for a unitary transformation matrix **U** that
 localizes given molecular orbitals **C** in terms of a certain criterion.
 The localized orbitals **L** are linear combination of old orbitals, i.e.,
 
-<img src="../../doc/figures/equations/loc.png" height="30"/>
+<img src="../../doc/figures/equations/loc.png" height="10"/>
 
 Note that in the case of the single reference wavefunction 
 the electronic charge on each of such (occupied) orbitals will be equal -1.
 One can easily compute the charge centroids of such orbitals from
 the dipole integrals **d** in AO basis,
 
-<img src="../../doc/figures/equations/lmoc.png" height="30"/>
+<img src="../../doc/figures/equations/lmoc.png" height="70"/>
+
+Orbital localization can be easily performed in Psi4. For example,
+
+```python
+# create a localizer object
+localizer = psi4.core.Localizer.build('BOYS', wfn.basisset(), wfn.Ca_subset("AO","OCC"))
+
+# localize orbitals (occupied alpha orbitals)
+localizer.localize()
+
+# extract the transformation matrix and new orbitals
+U = localizer.U
+L = localizer.L
+```
+
+For computing the LMO centroids dipole integrals in AO basis are necessary.
+They can be easily computed by using `psi4.core.MintsHelper` class:
+
+```python
+mints = psi4.core.MintsHelper(wfn.basisset())
+d = mints.ao_dipole()
+```
+
+Can you tell the structure of `d` object returned by `ao_dipole` method?
+
+Investigation of LMO centroids can help us imagine appoximate placement of localized orbitals. 
+How about their charge distribution? This can be achieved by computing the dipole moment
+associated with a particular orbital and centered at its charge centroid. The dipole moment
+evaluated with respect to the origin of coordinate system is
+
+<img src="../../doc/figures/equations/mu-o.png" height="20"/>
+
+thus, just a negative of the LMO centroid. 
+Any dipole moment can be recentered to a new origin according to the
+following prescription:
+
+<img src="../../doc/figures/equations/mu-n.png" height="20"/>
+
+However, careful analysis of the above equations
+reveals that such dipole moments vanish, which means that the localized orbitals
+have no dipole moment with respect to their LMO centroid.
+This means that
+the next non-vanishing multipole moment is quadrupole.
+The quadrupole moment associated with each LMO centroid, computed with respect to the origin
+of coordinate system is
+
+<img src="../../doc/figures/equations/theta-o.png" height="20"/>
+
+Any quadrupole moment can be recentered to a new origin according to the
+following prescription:
+
+<img src="../../doc/figures/equations/theta-o.png" height="20"/>
 
 
