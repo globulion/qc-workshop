@@ -149,11 +149,11 @@ the next non-vanishing multipole moment is quadrupole.
 The quadrupole moment associated with each LMO centroid, computed with respect to the origin
 of coordinate system is
 
-<img src="../../doc/figures/equations/theta-o.png" height="20"/>
+<img src="../../doc/figures/equations/quad-o.png" height="20"/>
 
 Any quadrupole moment can be recentered to a new origin according to the
 following prescription:
 
-<img src="../../doc/figures/equations/theta-o.png" height="20"/>
+<img src="../../doc/figures/equations/quad-o.png" height="20"/>
 
 
