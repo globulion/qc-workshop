@@ -106,7 +106,7 @@ class CIS(ABC):
   def create(cls, mol, verbose=True, save_states=None, reference='rhf'):
       if reference.lower() not in cls.reference_types:
          raise ValueError("Incorrect reference wavefunction type chosen. Only RHF and UHF are available")
-      assert(not (reference.lower()=='rhf' and mol.multiplicity() != 1)), "RHF reference cannot be set for closed-shell system!"
+      assert(not (reference.lower()=='rhf' and mol.multiplicity() != 1)), "RHF reference cannot be set for open-shell system!"
       # UCIS
       if mol.multiplicity()!=1 or reference.lower()=='uhf': return UCIS(mol, verbose, save_states)
       else: return RCIS(mol, verbose, save_states)
