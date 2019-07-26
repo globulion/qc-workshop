@@ -32,16 +32,16 @@ __all__ = ["MCState",
 
 class MCState:
   "Multiconfigurational state composed of Slater determinants as basis set"
-  def __init__(self, state): 
-      self.ci_e = state.E.copy()
-      self.ci_c = state.W.copy()
-      self.ci_l = state.get_ci_l()
-      self.ca_o = state.Ca_occ.to_array(dense=True)
-      self.cb_o = state.Cb_occ.to_array(dense=True)
-      self.ca_v = state.Ca_vir.to_array(dense=True)
-      self.cb_v = state.Cb_vir.to_array(dense=True)
-      self.bfs  = state.ref_wfn.basisset()
-      self.ndet = state.ndet
+  def __init__(self, wfn): 
+      self.ci_e = wfn.E.copy()
+      self.ci_c = wfn.W.copy()
+      self.ci_l = wfn.get_ci_l()
+      self.ca_o = wfn.Ca_occ.to_array(dense=True)
+      self.cb_o = wfn.Cb_occ.to_array(dense=True)
+      self.ca_v = wfn.Ca_vir.to_array(dense=True)
+      self.cb_v = wfn.Cb_vir.to_array(dense=True)
+      self.bfs  = wfn.ref_wfn.basisset()
+      self.ndet = wfn.ndet
   def overlap(self, other):
       assert(self.ndet == other.ndet)
       s_nm  = self._overlap_between_slater_determinants(other)

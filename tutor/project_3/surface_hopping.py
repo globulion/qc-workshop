@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import math
 import psi4
 import numpy
-from ..project_2.cis import MCState, CIS
+from ..project_2.cis import MCState, CIS, Reference_SlaterDeterminant
 
 class Computer(ABC):
   def __init__(self, molecule):
@@ -16,16 +16,17 @@ class Computer(ABC):
       self.nuclear_repulsion_energy = molecule.nuclear_repulsion_energy()
       #
       self.states = None
+      self.max_states = None
       #
       self.state_amplitudes = None
       self.state_electronic_energies = None
       self.state_forces = None
 
   @classmethod
-  def create(cls, method, molecule):
+  def create(cls, method, molecule, nstates=1):
       m = method.lower()
       if m == "psi4scf": return psi4SCF_Computer(molecule)
-      elif m == "mycis": return myCIS_Computer(molecule)
+      elif m == "mycis": return myCIS_Computer(molecule, nstates)
       else: raise ValueError("Wrong method chosen for computer")
 
   def update(self, xyz):#OK
@@ -40,7 +41,50 @@ class Computer(ABC):
   @abstractmethod
   def _compute_energy(self): pass
 
-  def _compute_forces(self):#OK
+  @abstractmethod
+  def _compute_forces(self): pass
+
+
+class HF_WFN:
+  def __init__(self, E, W, ca_o, cb_o, ca_v, cb_v, wfn, ndet):
+      self.E    = E.copy()
+      self.W    = W.copy()
+      self.Ca_occ = ca_o
+      self.Cb_occ = cb_o
+      self.Ca_vir = ca_v
+      self.Cb_vir = cb_v
+      self.ref_wfn  = wfn
+      self.ndet = ndet
+  def get_ci_l(self):
+      dets = []
+      dets.append(Reference_SlaterDeterminant(self.ref_wfn.nalpha(), self.ref_wfn.nbeta(), self.ref_wfn.nmo()))
+      return dets
+
+
+class psi4SCF_Computer(Computer):
+  def __init__(self, molecule): 
+      Computer.__init__(self, molecule)
+      self.max_states = 1
+  def _compute_energy(self):
+      W = numpy.array([1.0])
+      e, w = psi4.energy("SCF", molecule=self.molecule, return_wfn=True)
+      E = numpy.array([e - self.molecule.nuclear_repulsion_energy()])
+      ca_o = w.Ca_subset("AO","OCC")
+      cb_o = w.Cb_subset("AO","OCC")
+      ca_v = w.Ca_subset("AO","VIR")
+      cb_v = w.Cb_subset("AO","VIR")
+      self.states = HF_WFN(E, W, ca_o, cb_o, ca_v, cb_v, w, 1)
+      return E, W
+  def _compute_forces(self):
+      g = -psi4.gradient("SCF", molecule=self.molecule).to_array(dense=True)
+      return numpy.array([g])
+
+class ExcitedState_Computer(Computer):
+  def __init__(self, molecule, nstates):
+      Computer.__init__(self, molecule)
+      self.max_states = nstates
+
+  def _compute_forces(self):
       xyz = self.molecule.geometry()
       d = 0.000001
       f = []
@@ -57,41 +101,27 @@ class Computer(ABC):
           #
           f.append(f_xa1)
       self.update(xyz)
-      f = numpy.array(f).reshape(self.molecule.natom(),3,n_states).transpose(2,0,1)
+      f = -numpy.array(f).reshape(self.molecule.natom(),3,n_states).transpose(2,0,1)
       return f
 
 
-
-class psiSCF_Computer(Computer):
-  def __init__(self, molecule): 
-      Computer.__init__(self, molecule)
-  def _compute_energy(self):
-      W = numpy.array([1.0])
-      e = psi4.energy("SCF", molecule=self.molecule, return_wfn=False)
-      E = numpy.array([e - self.molecule.nuclear_repulsion_energy()])
-      return E, W
-
-class ExcitedState_Computer(Computer):
-  def __init__(self, molecule):
-      Computer.__init__(self, molecule)
-
 class CIS_Computer(ExcitedState_Computer):
-  def __init__(self, molecule):
-      ExcitedState_Computer.__init__(self, molecule) 
+  def __init__(self, molecule, nstates):
+      ExcitedState_Computer.__init__(self, molecule, nstates) 
 
 class myCIS_Computer(CIS_Computer):
-  def __init__(self, molecule):
-      CIS_Computer.__init__(self, molecule)
+  def __init__(self, molecule, nstates):
+      CIS_Computer.__init__(self, molecule, nstates)
   def _compute_energy(self):
-      cis = CIS.create(self.molecule, verbose=False, save_states=4, reference='rhf')
+      cis = CIS.create(self.molecule, verbose=False, save_states=self.max_states-1, reference='rhf')
       cis.run()
       self.states = cis
       return cis.E, cis.W
 
 class Hamiltonian(ABC):
-  def __init__(self, method, molecule):
+  def __init__(self, method, molecule, nstates):
       ABC.__init__(self)
-      self.computer = Computer.create(method, molecule)
+      self.computer = Computer.create(method, molecule, nstates)
       self.H = None
       self.F = None
 
@@ -111,8 +141,8 @@ class Hamiltonian(ABC):
   def iterate(self, h_0, h): pass
 
 class Isolated_Hamiltonian(Hamiltonian):
-  def __init__(self, molecule, method):
-      Hamiltonian.__init__(self, molecule, method)
+  def __init__(self, molecule, method, nstates):
+      Hamiltonian.__init__(self, molecule, method, nstates)
   def iterate(self, h_0, h): raise NotImplementedError("This Hamiltonian is isolated")
 
 class QMMM_Hamiltonian(Hamiltonian):
@@ -212,7 +242,7 @@ class System:
       self.hamiltonian.computer.update(self.aggregate.qm.geometry())
 
   def set_hamiltonian(self, qm_method):
-      self.hamiltonian = Isolated_Hamiltonian(qm_method, self.aggregate.qm)
+      self.hamiltonian = Isolated_Hamiltonian(qm_method, self.aggregate.qm, self.nstates)
 
 class Units:
   fs2au = 4.1341373336493e+16 * 1.0e-15
@@ -221,17 +251,17 @@ class Units:
 class DynamicalSystem(System, Units):
   def __init__(self, aggregate, temperature=0.0, nstates=1,
                      qm_method='myCIS', gs_method=None, dt_class=0.5, dt_quant=None,
-                     init_state=0, max_states=5):
+                     init_state=0, max_states=1):
       System.__init__(self, aggregate, temperature, nstates)
       Units.__init__(self)
       #
-      self.dim = max_states
       self.init_state = init_state
       self.current_state = init_state
       self.temperature = temperature
       self.dt_class = dt_class * self.fs2au
       if dt_quant is None: dt_quant = dt_class
       self.set_hamiltonian(qm_method)
+      self.dim = self.hamiltonian.computer.max_states
       #
       self.c = None
       self.d = None
@@ -303,7 +333,7 @@ class DynamicalSystem(System, Units):
 
       # [3] Compute next velocities
       v_new = v_old + 0.5 * dt * (a_old + f_new * self._m[:, numpy.newaxis])
-      v_new.fill(0.0)
+      #v_new.fill(0.0)
 
       # [4] Grab previous Hamiltonian matrix in adiabatic basis
       H = numpy.diag(self.hamiltonian.computer.state_electronic_energies)
