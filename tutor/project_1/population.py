@@ -75,7 +75,6 @@ class Loc:
       qb = -numpy.ones(self.wfn.nbeta (), dtype=numpy.float64)
       return qa, qb
   def el_dipoles(self): 
-      da = 0; db=0
       da = -numpy.zeros((self.wfn.nalpha(),3), dtype=numpy.float64)
       db = -numpy.zeros((self.wfn.nbeta (),3), dtype=numpy.float64)
       return da, db
@@ -130,7 +129,8 @@ class Loc:
       for i in range(self.wfn.nalpha()):
           log += "%2da   " % (i+1)
           log += " %8.3f %8.3f %8.3f     " % tuple(la[i])
-          log += " %11.3f %11.3f %11.3f   \n" % tuple(Qa[i,:3])
+          log += " %11.3f %11.3f %11.3f  " % tuple(Qa[i,:3])
+          log += "  <aver>=%8.3f\n" % ((Qa[i,0]+Qa[i,3]+Qa[i,5])/3.0)
           log += " "*38
           log += " %11.3f %11.3f %11.3f   \n" % (Qa[i,1], Qa[i,3], Qa[i,4])
           log += " "*38
@@ -140,7 +140,8 @@ class Loc:
       for i in range(self.wfn.nbeta ()):
           log += "%2db   " % (i+1)
           log += " %8.3f %8.3f %8.3f     " % tuple(lb[i])
-          log += " %11.3f %11.3f %11.3f   \n" % tuple(Qb[i,:3])
+          log += " %11.3f %11.3f %11.3f  " % tuple(Qb[i,:3])
+          log += "  <aver>=%8.3f\n" % ((Qb[i,0]+Qb[i,3]+Qb[i,5])/3.0)
           log += " "*38
           log += " %11.3f %11.3f %11.3f   \n" % (Qb[i,1], Qb[i,3], Qb[i,4])
           log += " "*38

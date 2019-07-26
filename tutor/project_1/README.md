@@ -1,7 +1,8 @@
 # Population analyses
 
 Population analyses are useful tools for investigating charge distribution
-within molecular systems. In this Project we will implement some examples.
+within molecular systems. In this Project we will implement some examples:
+atomic partial charge analysis and localized molecular orbital analysis.
 
 ## Molecular total charge
 
@@ -164,5 +165,5 @@ But due to the properties of the localized orbitals the above equation simplifie
 
 <img src="../../doc/figures/equations/quad-n-lmoc.png" height="20"/>
 
-
-
+The quadrupole moments can tell us about the shape of the orbital. What can you say about
+the orbitals you obtain?
