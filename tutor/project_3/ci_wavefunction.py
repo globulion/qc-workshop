@@ -15,9 +15,6 @@ __all__ = ["SlaterDeterminant",
               "HF_CIWavefunction",
               "CIS_CIWavefunction",]
 
-
-
-
 class SlaterDeterminant(ABC):
   def __init__(self, nao, nbo, nmo, rule):
       ABC.__init__(self)

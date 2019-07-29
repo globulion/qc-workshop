@@ -29,7 +29,7 @@ objects and relationships between them. Since our task is to model the molecular
 will be a *dynamical system*. The schematic representation of such a system for the need of TSH algorithm
 is shown below:
 
-<img src="../../doc/figures/plan.png" height="700"/>
+<img src="../../doc/figures/plan.png" height="600"/>
 
 The circles represent certain classes of objects understood as basic abstract building blocks
 of our program.
@@ -163,12 +163,128 @@ class Trajectory(ABC):
       pass
 ```
 
-To design the Hamiltonian class, it is best to design first Computer class, since it is of
-lesser range.
+To design the Hamiltonian class, it is best to design first SlaterDeterminant class, since it is of
+lesser range, later design the CIWavefunction, and finally, Computer.
+
+### SlaterDeterminant
+
+Here we describe the following construct:
+
+<img src="../../doc/figures/equations/slater-determinant-basis.png" height="50"/>
+
+which is constructed by applying creation and annihilation operators
+on the reference Slater determinant. We only focus here on the
+structure of the determinant. For this,
+we need number of occupied alpha and beta orbitals,
+the total number of orbitals as well as the creation and annihilation
+operator rule (i.e., which orbitals were excited). For example, 
+to create determinant with single excitation from occupied orbital *i*
+to virtual orbital *a*, we need to distinguish between two possible rules:
+  * electron goes frol *i* of spin alpha to *a* to spin alpha
+  * electron goes frol *i* of spin beta to *a* to spin beta
+
+Such rules can be defined via Python tuples e.g. `(i,a)` and `(-i,-a)`, respectively.
+Multiple excitations can be described by lists of tuples with creation/annihilation pairs.
+Below exemplary implementation is provided. Note, that for single excitations
+we define auxiliary variable `change_alpha` which denotes that the instance referrs to either of the above
+excitation types. In the case of double and multiple excitations, simultaneous alpha and beta
+orbital excitations are possible that do not change the multiplicity of the system.
+
+```python
+class SlaterDeterminant(ABC):
+  def __init__(self, nao, nbo, nmo, rule):
+      ABC.__init__(self)
+      self.is_reference = False
+      self.is_single    = False
+      self.is_double    = False
+      self.is_triple    = False
+      self.rule = rule
+      self.nao = nao
+      self.nbo = nbo
+      self.nav = nmo - nao
+      self.nbv = nmo - nbo
+      self.nmo = nmo
+
+class Reference_SlaterDeterminant(SlaterDeterminant):
+  def __init__(self, nao, nbo, nmo):
+      SlaterDeterminant.__init__(self, nao, nbo, nmo, rule=())
+      self.is_reference = True
+
+class Single_SlaterDeterminant(SlaterDeterminant):
+  def __init__(self, nao, nbo, nmo, rule):
+      SlaterDeterminant.__init__(self, nao, nbo, nmo, rule)
+      self.is_single = True
+      self.change_alpha = True if self.rule[0] > 0 else False
+
+class Double_SlaterDeterminant(SlaterDeterminant):
+  def __init__(self, nao, nbo, nmo, rule):
+      SlaterDeterminant.__init__(self, nao, nbo, nmo, rule)
+      self.is_double = True
+```
+
+### CIWavefunction
+
+Once the structure of Slated determinants is implemented, we can move to CIWavefunction
+description.
+CIWavefunction is a perfect place to implement very useful functionality of
+computing overlap between multireference quantum states (to compute later non-adiabatic
+couplings). To do that, we need to define all possible Slater determinantal basis functions
+(in terms of objects of SlaterDeterminant type). Therefore, we need to provide
+the reference wavefunction,
+CI state energies (eigenvalues of CI Hamiltonian) as well as CI vectors (eigenvectors of CI Hamiltonian).
+From reference wavefunction we can extract molecular orbitals (occupied and virtual) and other data
+(see psi4.core.Wavefunction object).
+
+```python
+class CIWavefunction(ABC):
+  "Multiconfigurational state composed of Slater determinants as basis set"
+  def __init__(self, ref_wfn, E, W):
+      ABC.__init__(self)
+      self.ci_e = E.copy()
+      self.ci_c = W.copy()
+      self.ca_o = ref_wfn.Ca_subset("AO","OCC").to_array(dense=True)
+      self.cb_o = ref_wfn.Cb_subset("AO","OCC").to_array(dense=True)
+      self.ca_v = ref_wfn.Ca_subset("AO","VIR").to_array(dense=True)
+      self.cb_v = ref_wfn.Cb_subset("AO","VIR").to_array(dense=True)
+      self.bfs  = ref_wfn.basisset()
+      self.naocc= ref_wfn.nalpha()
+      self.nbocc= ref_wfn.nbeta()
+      self.nmo  = ref_wfn.nmo()
+      self.navir= self.nmo - self.naocc
+      self.nbvir= self.nmo - self.nbocc
+      self.ci_l = self.make_ci_l()
+      self.ndet = len(self.ci_l)
+
+  @abstractmethod
+  def make_ci_l(self): pass
+
+  def overlap(self, other):
+      "Overlap between two sets of multiconfigurational states"
+      pass
+
+class HF_CIWavefunction(CIWavefunction):
+  def __init__(self, ref_wfn, E):
+      W = numpy.array([[1.0]])
+      CIWavefunction.__init__(self, ref_wfn, E, W)
+
+  def make_ci_l(self):
+      "Just one determinant here: reference with an empty rule"
+      dets = []
+      dets.append(Reference_SlaterDeterminant(self.naocc, self.nbocc, self.nmo))
+      return dets
+
+class CIS_CIWavefunction(CIWavefunction):
+  def __init__(self, ref_wfn, E, W):
+      CIWavefunction.__init__(self, ref_wfn, E, W)
+
+  def make_ci_l(self): 
+      "In general, (1 + naocc*navir + nbocc*nbvir) determinants"
+      pass
+```
 
 ### Computer
 
-This time, we decide to create many different types of Computer, depending
+We decide to create many different types of Computer, depending
 on the method chosen to compute energy and forces.
 Let start from the abstract base *Computer*.
 
@@ -262,4 +378,67 @@ class myCIS_Computer(CIS_Computer):
       cis.run()
       state = CIS_CIWavefunction(cis.ref_wfn, cis.E, cis.W)
       return state
+```
+
+### Hamiltonian
+
+Finally, once Computer and Aggregate classes are implemented, we can 
+design Hamiltonian class. Hamiltonian should contain reference to the entire aggregate
+as well as all the computers for each fragment. Hamiltonian should also implement the
+quantum embedding of the fragments and assemble the effective forces and quantum states
+in the presence of all fragments. First, let us design the base class.
+
+```python
+class Hamiltonian(ABC):
+  def __init__(self, method, aggregate, nstates, method_low=None):
+      ABC.__init__(self)
+      self.aggregate = aggregate
+      self.computers = []
+      self.computers.append(Computer.create(method, aggregate.qm, nstates))
+      for i in range(1,aggregate.nfrags-1):
+          self.computers.append(Computer.create(method_low, aggregate.bath[i]))
+
+  @classmethod
+  def create(cls, molecule, method, method_low=None): pass
+
+  def compute(self):
+      "Solve Schrodinger Equation for Extended Molecular Aggregate"
+      # unperturbed Hamiltonian
+      self.computers[0].compute()
+      # environment
+      if self.aggregate.nfrags > 1:
+         self.iterate_bath() 
+      return
+ 
+  @abstractmethod
+  def iterate_bath(self): pass
+```
+
+
+For the sake of the workshop, we will consider only isolated QM fragment.
+
+```python
+class Isolated_Hamiltonian(Hamiltonian):
+  def __init__(self, molecule, method, nstates):
+      Hamiltonian.__init__(self, molecule, method, nstates, method_low=None)
+  def iterate_bath(self): raise ValueError("This Hamiltonian is isolated")
+```
+
+However
+
+```python
+class QMMM_Hamiltonian(Hamiltonian):
+  "MM potential is set on L"
+
+class QMQM_Hamiltonian(Hamiltonian):
+  "QM potential is set on L"
+
+class EE_QMQM_Hamiltonian(QMQM_Hamiltonian):
+  "Instantaneous point charges from wavefunction on L are QM potential"
+
+class PE_QMQM_Hamiltonian(QMQM_Hamiltonian):
+  "Polarization embedding potential is set on L"
+
+class PDE_QMQM_Hamiltonian(PE_QMQM_Hamiltonian):
+  "Polarization density embedding potential is set on L"
 ```
