@@ -29,7 +29,7 @@ objects and relationships between them. Since our task is to model the molecular
 will be a *dynamical system*. The schematic representation of such a system for the need of TSH algorithm
 is shown below:
 
-<img src="../../doc/figures/plan.png" height="300"/>
+<img src="../../doc/figures/plan.png" height="700"/>
 
 The circles represent certain classes of objects understood as basic abstract building blocks
 of our program.
