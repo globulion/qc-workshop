@@ -21,27 +21,40 @@ from abc import ABC, abstractmethod
 
 #numpy.set_printoptions(precision=3, linewidth=200, suppress=True)
 
-__all__ = ["MCState", 
-           "SlaterDeterminant",
+__all__ = ["SlaterDeterminant",
               "Reference_SlaterDeterminant",
               "Single_SlaterDeterminant",
+           "CIWavefunction",
+              "HF_CIWavefunction",
+              "CIS_CIWavefunction",
            "CIS",
               "RCIS",
               "UCIS",
            "CIS_f"]
 
-class MCState:
+
+class CIWavefunction(ABC):
   "Multiconfigurational state composed of Slater determinants as basis set"
-  def __init__(self, wfn): 
-      self.ci_e = wfn.E.copy()
-      self.ci_c = wfn.W.copy()
-      self.ci_l = wfn.get_ci_l()
-      self.ca_o = wfn.Ca_occ.to_array(dense=True)
-      self.cb_o = wfn.Cb_occ.to_array(dense=True)
-      self.ca_v = wfn.Ca_vir.to_array(dense=True)
-      self.cb_v = wfn.Cb_vir.to_array(dense=True)
-      self.bfs  = wfn.ref_wfn.basisset()
-      self.ndet = wfn.ndet
+  def __init__(self, ref_wfn, E, W):
+      ABC.__init__(self)
+      self.ci_e = E.copy()
+      self.ci_c = W.copy()
+      self.ca_o = ref_wfn.Ca_subset("AO","OCC").to_array(dense=True)
+      self.cb_o = ref_wfn.Cb_subset("AO","OCC").to_array(dense=True)
+      self.ca_v = ref_wfn.Ca_subset("AO","VIR").to_array(dense=True)
+      self.cb_v = ref_wfn.Cb_subset("AO","VIR").to_array(dense=True)
+      self.bfs  = ref_wfn.basisset()
+      self.naocc= ref_wfn.nalpha()
+      self.nbocc= ref_wfn.nbeta()
+      self.nmo  = ref_wfn.nmo()
+      self.navir= self.nmo - self.naocc
+      self.nbvir= self.nmo - self.nbocc
+      self.ci_l = self.make_ci_l()
+      self.ndet = len(self.ci_l)
+
+  @abstractmethod
+  def make_ci_l(self): pass
+
   def overlap(self, other):
       assert(self.ndet == other.ndet)
       s_nm  = self._overlap_between_slater_determinants(other)
@@ -72,6 +85,35 @@ class MCState:
          else:                cb[:,det.rule[0]] = self.cb_v[:,det.rule[1]]
       if det.is_double: raise NotImplementedError
       return ca, cb
+
+class HF_CIWavefunction(CIWavefunction):
+  def __init__(self, ref_wfn, E):
+      W = numpy.array([[1.0]])
+      CIWavefunction.__init__(self, ref_wfn, E, W)
+  def make_ci_l(self):
+      dets = []
+      dets.append(Reference_SlaterDeterminant(self.naocc, self.nbocc, self.nmo))
+      return dets
+
+
+class CIS_CIWavefunction(CIWavefunction):
+  def __init__(self, ref_wfn, E, W):
+      CIWavefunction.__init__(self, ref_wfn, E, W)
+  def make_ci_l(self):
+      dets = []
+      dets.append(Reference_SlaterDeterminant(self.naocc, self.nbocc, self.nmo))
+      for i in range(self.naocc):
+          for a in range(self.navir):
+              rule = (i,a)
+              det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
+              dets.append(det)
+      for i in range(self.nbocc):
+          for a in range(self.nbvir):
+              rule = (-i,-a)
+              det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
+              dets.append(det)
+      return dets
+
 
 class SlaterDeterminant(ABC):
   def __init__(self, nao, nbo, nmo, rule):
@@ -121,6 +163,7 @@ class CIS(ABC):
       self.verbose = verbose
       self.save_states = save_states
       #
+      self.ref_wfn = None
       self.scf_e = None
       self.e_0 = None
       self.nuclear_repulsion_energy = mol.nuclear_repulsion_energy()
@@ -189,21 +232,6 @@ class CIS(ABC):
       self.Fa_vir = numpy.einsum("ai,ab,bj->ij", Va, Ga, Va)
       #
       self._set_beta(H, eri)
-
-  def get_ci_l(self):
-      dets = []
-      dets.append(Reference_SlaterDeterminant(self.naocc, self.nbocc, self.nmo))
-      for i in range(self.naocc):
-          for a in range(self.navir):
-              rule = (i,a)
-              det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
-              dets.append(det)
-      for i in range(self.nbocc):
-          for a in range(self.nbvir):
-              rule = (-i,-a)
-              det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
-              dets.append(det)
-      return dets
   def _run_scf(self):
       self._set_scf_reference()
       scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)

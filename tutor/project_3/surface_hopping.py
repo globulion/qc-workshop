@@ -1,12 +1,15 @@
 #!/usr/bin/python3
-"""
- Module for surface hopping method
+"""Surface Hopping Module.
+
+.. moduleauthor:: Bartosz Błasiak <blasiak.bartosz@gmail.com>
+
 """
 from abc import ABC, abstractmethod
 import math
 import psi4
 import numpy
-from ..project_2.cis import MCState, CIS, Reference_SlaterDeterminant
+from ..project_2.cis import CIS, HF_CIWavefunction, CIS_CIWavefunction
+
 
 class Computer(ABC):
   def __init__(self, molecule):
@@ -15,12 +18,9 @@ class Computer(ABC):
       self.molecule = molecule
       self.nuclear_repulsion_energy = molecule.nuclear_repulsion_energy()
       #
-      self.states = None
-      self.max_states = None
-      #
-      self.state_amplitudes = None
-      self.state_electronic_energies = None
-      self.state_forces = None
+      self.ciwfn = None
+      self.nstates = None
+      self.forces = None
 
   @classmethod
   def create(cls, method, molecule, nstates=1):
@@ -29,14 +29,14 @@ class Computer(ABC):
       elif m == "mycis": return myCIS_Computer(molecule, nstates)
       else: raise ValueError("Wrong method chosen for computer")
 
-  def update(self, xyz):#OK
+  def update(self, xyz):
       self.molecule.set_geometry(xyz)
       self.molecule.update_geometry()
       self.nuclear_repulsion_energy = self.molecule.nuclear_repulsion_energy()
 
   def compute(self): 
-      self.state_electronic_energies, self.state_amplitudes = self._compute_energy()
-      self.state_forces = self._compute_forces()
+      self.ciwfn = self._compute_energy()
+      self.forces = self._compute_forces()
 
   @abstractmethod
   def _compute_energy(self): pass
@@ -45,36 +45,17 @@ class Computer(ABC):
   def _compute_forces(self): pass
 
 
-class HF_WFN:
-  def __init__(self, E, W, ca_o, cb_o, ca_v, cb_v, wfn, ndet):
-      self.E    = E.copy()
-      self.W    = W.copy()
-      self.Ca_occ = ca_o
-      self.Cb_occ = cb_o
-      self.Ca_vir = ca_v
-      self.Cb_vir = cb_v
-      self.ref_wfn  = wfn
-      self.ndet = ndet
-  def get_ci_l(self):
-      dets = []
-      dets.append(Reference_SlaterDeterminant(self.ref_wfn.nalpha(), self.ref_wfn.nbeta(), self.ref_wfn.nmo()))
-      return dets
 
 
 class psi4SCF_Computer(Computer):
   def __init__(self, molecule): 
       Computer.__init__(self, molecule)
-      self.max_states = 1
+      self.nstates = 1
   def _compute_energy(self):
-      W = numpy.array([1.0])
       e, w = psi4.energy("SCF", molecule=self.molecule, return_wfn=True)
       E = numpy.array([e - self.molecule.nuclear_repulsion_energy()])
-      ca_o = w.Ca_subset("AO","OCC")
-      cb_o = w.Cb_subset("AO","OCC")
-      ca_v = w.Ca_subset("AO","VIR")
-      cb_v = w.Cb_subset("AO","VIR")
-      self.states = HF_WFN(E, W, ca_o, cb_o, ca_v, cb_v, w, 1)
-      return E, W
+      state = HF_CIWavefunction(w, E)
+      return state
   def _compute_forces(self):
       g = -psi4.gradient("SCF", molecule=self.molecule).to_array(dense=True)
       return numpy.array([g])
@@ -82,24 +63,24 @@ class psi4SCF_Computer(Computer):
 class ExcitedState_Computer(Computer):
   def __init__(self, molecule, nstates):
       Computer.__init__(self, molecule)
-      self.max_states = nstates
+      self.nstates = nstates
 
   def _compute_forces(self):
       xyz = self.molecule.geometry()
       d = 0.000001
       f = []
-      e_0 = self.state_electronic_energies + self.nuclear_repulsion_energy
+      e_0 = self.ciwfn.ci_e + self.nuclear_repulsion_energy
       n_states = len(e_0)
       for a in range(self.molecule.natom()):
-       for x in range(3):
-          xyz_xa1 = xyz.clone()
-          xyz_xa1.set(a, x, xyz.get(a, x) + d)
-          #
-          self.update(xyz_xa1)
-          e_xa1, w_xa1 = self._compute_energy()
-          f_xa1 = (e_xa1 + self.molecule.nuclear_repulsion_energy() - e_0) / d
-          #
-          f.append(f_xa1)
+          for x in range(3):                                                           
+             xyz_xa1 = xyz.clone()
+             xyz_xa1.set(a, x, xyz.get(a, x) + d)
+             #
+             self.update(xyz_xa1)
+             ciwfn = self._compute_energy()
+             f_xa1 = (ciwfn.ci_e + self.molecule.nuclear_repulsion_energy() - e_0) / d
+             #
+             f.append(f_xa1)
       self.update(xyz)
       f = -numpy.array(f).reshape(self.molecule.natom(),3,n_states).transpose(2,0,1)
       return f
@@ -113,37 +94,39 @@ class myCIS_Computer(CIS_Computer):
   def __init__(self, molecule, nstates):
       CIS_Computer.__init__(self, molecule, nstates)
   def _compute_energy(self):
-      cis = CIS.create(self.molecule, verbose=False, save_states=self.max_states-1, reference='rhf')
+      cis = CIS.create(self.molecule, verbose=False, save_states=self.nstates-1, reference='uhf')
       cis.run()
-      self.states = cis
-      return cis.E, cis.W
+      state = CIS_CIWavefunction(cis.ref_wfn, cis.E, cis.W)
+      return state
 
 class Hamiltonian(ABC):
-  def __init__(self, method, molecule, nstates):
+  def __init__(self, method, aggregate, nstates, method_low=None):
       ABC.__init__(self)
-      self.computer = Computer.create(method, molecule, nstates)
-      self.H = None
-      self.F = None
+      self.aggregate = aggregate
+      self.computers = []
+      self.computers.append(Computer.create(method, aggregate.qm, nstates))
+      for i in range(1,aggregate.nfrags-1):
+          self.computers.append(Computer.create(method_low, aggregate.bath[i]))
 
   @classmethod
-  def create(cls, molecule, method): pass
+  def create(cls, molecule, method, method_low=None): pass
 
-  def compute(self, bath_hamiltonians=None):
+  def compute(self):
       "Solve Schrodinger Equation for Extended Molecular Aggregate"
       # unperturbed Hamiltonian
-      self.computer.compute()
+      self.computers[0].compute()
       # environment
-      if bath_hamiltonians is not None:
-         self.iterate(h, bath_hamiltonians) 
+      if self.aggregate.nfrags > 1:
+         self.iterate_bath() 
       return
  
   @abstractmethod
-  def iterate(self, h_0, h): pass
+  def iterate_bath(self): pass
 
 class Isolated_Hamiltonian(Hamiltonian):
   def __init__(self, molecule, method, nstates):
-      Hamiltonian.__init__(self, molecule, method, nstates)
-  def iterate(self, h_0, h): raise NotImplementedError("This Hamiltonian is isolated")
+      Hamiltonian.__init__(self, molecule, method, nstates, method_low=None)
+  def iterate_bath(self): raise ValueError("This Hamiltonian is isolated")
 
 class QMMM_Hamiltonian(Hamiltonian):
   "MM potential is set on L"
@@ -162,7 +145,7 @@ class PDE_QMQM_Hamiltonian(PE_QMQM_Hamiltonian):
 
 
 class TimePoint:
-  def __init__(self, x, v, f, s=None):
+  def __init__(self, x, v, f, s):
       self.x = x.copy()
       self.v = v.copy()
       self.f = f.copy()
@@ -191,22 +174,34 @@ class Trajectory(ABC):
       self.point_prev = prev 
       self.point_last = last
   def save(self, out): self.point_last.save(out)
-  def rescale_velocities(self, e_kin):
-      "Berendsen v-rescale thermostat"
+  def kinetic_energy(self):
+      "Compute kinetic energy of nuclei"
       e = 0.0
       for i in range(self.natoms):
           vi = self.point_last.v[i]
           e += self.molecules.mass(i) * numpy.dot(vi, vi) / psi4.constants.au2amu
       e/= 2.0 
-      alpha = math.sqrt(e_kin/e)
+      return e
+  def rescale_velocities(self, e_kin):
+      "Berendsen v-rescale thermostat"
+      #if e_kin < 0: e_kin = 0.0
+      e = self.kinetic_energy()
+      if e> 0.0: alpha = math.sqrt(e_kin/e)
+      else: alpha = 0.0
       self.point_last.v*= alpha
+  def canonicalize_velocities(self, temp): 
+      e_kin = self.kinetic_energy()
+      t = 2.0/3.0 * e_kin / psi4.constants.kb * psi4.constants.hartree2J
+      alpha = math.sqrt(temp/t)
+      self.point_last.v*= alpha
+      print("Warning: no Maxwell-Boltzmann distribution is applied yet")
 
 class Aggregate:
-  def __init__(self, molecule):
-      self.all = molecule
-      self.qm = molecule.extract_subsets(1)
-      self.nfrags = molecule.nfragments()
-      self.bath = [] if self.nfrags == 1 else [molecule.extract_subsets(2+i) for i in range(self.nfrags-1)]
+  def __init__(self, psi4_molecule):
+      self.all = psi4_molecule
+      self.qm = psi4_molecule.extract_subsets(1)
+      self.nfrags = psi4_molecule.nfragments()
+      self.bath = [] if self.nfrags == 1 else [psi4_molecule.extract_subsets(2+i) for i in range(self.nfrags-1)]
   def update(self, xyz):
       self.all.set_geometry(xyz)
       self.qm = self.all.extract_subsets(1)
@@ -231,29 +226,25 @@ class System:
       #
       self._m = 1./(numpy.array([self.aggregate.all.mass(i) for i in range(self.aggregate.all.natom())])) * psi4.constants.au2amu
       
-  def canonicalize_velocities(self, temp): 
-      print("Warning: no Maxwell-Boltzmann distribution is applied yet")
-
-  def rescale_velocities(self, e_kin): 
-      self.trajectory.rescale_velocities(e_kin)
-
-  def update_aggregate(self, xyz):
+  def update(self, xyz):
       self.aggregate.update(xyz)
-      self.hamiltonian.computer.update(self.aggregate.qm.geometry())
+      self.hamiltonian.computers[0].update(self.aggregate.qm.geometry())
+      for i, computer in enumerate(self.hamiltonian.computers[1:]):
+          computer.update(self.aggregate.bath[i].geometry())
 
-  def set_hamiltonian(self, qm_method):
-      self.hamiltonian = Isolated_Hamiltonian(qm_method, self.aggregate.qm, self.nstates)
+  def set_hamiltonian(self, method_high, method_low=None):
+      self.hamiltonian = Isolated_Hamiltonian(method_high, self.aggregate, self.nstates)
 
 class Units:
   fs2au = 4.1341373336493e+16 * 1.0e-15
   au2fs = 1./fs2au
 
 class DynamicalSystem(System, Units):
-  def __init__(self, aggregate, temperature=0.0, nstates=1,
-                     qm_method='myCIS', gs_method=None, dt_class=0.5, dt_quant=None,
-                     init_state=0, max_states=1):
+  def __init__(self, aggregate, nstates=1, init_state=0, temperature=0.0, 
+                     qm_method='myCIS', gs_method=None, dt_class=0.5, dt_quant=None, seed=0):
       System.__init__(self, aggregate, temperature, nstates)
       Units.__init__(self)
+      numpy.random.seed(seed)
       #
       self.init_state = init_state
       self.current_state = init_state
@@ -261,20 +252,22 @@ class DynamicalSystem(System, Units):
       self.dt_class = dt_class * self.fs2au
       if dt_quant is None: dt_quant = dt_class
       self.set_hamiltonian(qm_method)
-      self.dim = self.hamiltonian.computer.max_states
+      self.dim = self.hamiltonian.computers[0].nstates
       #
       self.c = None
       self.d = None
+      #
+      self.energy = None
 
-  def run(self, nt, time=None, out='traj.dat', out_xyz='traj.xyz'):
+  def run(self, nt, out='traj.dat', out_xyz='traj.xyz'):
       outf = open(out, 'w')
       outx = open(out_xyz, 'w')
+
       print(" Initial Conditions")
       self.set_initial_conditions()
       self.trajectory.save(outf)
       self.aggregate.save_xyz(outx)
 
-      #nt = time/self.dt_class
       for i in range(nt): 
           t = i*self.dt_class*self.au2fs
           print(" t = %13.3f [fs]  s = %2d" % (t, self.current_state))
@@ -285,11 +278,10 @@ class DynamicalSystem(System, Units):
       outf.close()
       outx.close()
 
-
   def hop(self, g): 
       zeta = numpy.random.random()
       for state in range(g.size):
-          if g[:(state+1)].sum() < zeta < g[:(state+2)].sum():
+          if g[:(state)].sum() < zeta < g[:(state+1)].sum():
              self.current_state = state
 
   def set_initial_conditions(self):
@@ -302,14 +294,16 @@ class DynamicalSystem(System, Units):
       self.hamiltonian.compute()
       # phase space
       x = self.aggregate.all.geometry().to_array(dense=True)
-      v = numpy.random.random((self.aggregate.all.natom(), 3))
-      f = self.hamiltonian.computer.state_forces[self.init_state]
-      s = self.hamiltonian.computer.states
+      v = numpy.random.random((self.aggregate.all.natom(), 3)) - 1.0
+      f = self.hamiltonian.computers[0].forces[self.init_state]
+      s = self.hamiltonian.computers[0].ciwfn
       point_init = TimePoint(x, v, f, s)
       #
       self.trajectory.add_point(point_init)
-      self.canonicalize_velocities(self.temperature)
-      self.rescale_velocities(0.0)
+      self.trajectory.canonicalize_velocities(self.temperature)
+      self.trajectory.rescale_velocities(0.01)
+      #
+      self.energy = s.ci_e[self.init_state] + self.aggregate.all.nuclear_repulsion_energy() + self.trajectory.kinetic_energy()
 
   def propagate(self):
       dt = self.dt_class
@@ -318,33 +312,30 @@ class DynamicalSystem(System, Units):
       v_old = self.trajectory.point_last.v
       a_old = self.trajectory.point_last.f * self._m[:, numpy.newaxis]
       s_old = self.trajectory.point_last.s
-      w_old = MCState(s_old)
       c_old = self.c.copy()
       p_old = self.d.copy()
 
       # [1] Compute next x
       x_new = x_old + dt*v_old + 0.5 * dt*dt * a_old
-      self.update_aggregate(psi4.core.Matrix.from_array(x_new))
+      self.update(psi4.core.Matrix.from_array(x_new))
 
       # [2] Compute next wavefunction and forces
       self.hamiltonian.compute()
-      s_new = self.hamiltonian.computer.states
-      f_new = self.hamiltonian.computer.state_forces[self.current_state]
+      s_new = self.hamiltonian.computers[0].ciwfn
+      f_new = self.hamiltonian.computers[0].forces[self.current_state]
 
       # [3] Compute next velocities
       v_new = v_old + 0.5 * dt * (a_old + f_new * self._m[:, numpy.newaxis])
-      #v_new.fill(0.0)
 
       # [4] Grab previous Hamiltonian matrix in adiabatic basis
-      H = numpy.diag(self.hamiltonian.computer.state_electronic_energies)
+      H = numpy.diag(s_old.ci_e)
 
-      # [4] Compute non-adiabatic coupling constants
-      w_new = MCState(s_new) 
-      S = w_old.overlap(w_new)
+      # [4] Compute non-adiabatic coupling constants sigma_ij
+      S = s_old.overlap(s_new)
       s =(S - S.T) / (2.0 * dt)
 
       # [5] Compute G operator matrix
-      G = H - 1.0j*s
+      G = H - 1.0j*s.T
 
       # [6] Compute next dynamical amplitudes
       c_new = self._step_quantum(c_old, G)
@@ -352,17 +343,22 @@ class DynamicalSystem(System, Units):
       self._update_density_matrix()
       p_new = self.d
 
-      # [7] Compute probabilities
-      P = 2.0 * dt * p_new.real * s / p_new.diagonal()
-      P = P[self.current_state]
+      # [7] Compute probabilities from current state
+      print(self.d.real.diagonal())
+      d_ii= self.d.real.diagonal()[self.current_state]
+      d_ij= self.d[self.current_state].real
+      s_i = s[self.current_state]
+      P = 2.0 * dt * d_ij * s_i / d_ii
       P[P<0.0] = 0.0
+      print(P)
 
       # [8] Hop if required
-      self.hop(P)
-
-      # [9] Save
       point_next = TimePoint(x_new, v_new, f_new, s_new)
       self.trajectory.add_point(point_next)
+      e_kin_target = self.energy - self.aggregate.all.nuclear_repulsion_energy() - s_new.ci_e[self.current_state]
+      if e_kin_target > 0: 
+         self.hop(P)
+         self.trajectory.rescale_velocities(e_kin_target)
 
 
   def _density_matrix(self, c):
