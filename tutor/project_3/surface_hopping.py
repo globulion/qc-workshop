@@ -8,7 +8,8 @@ from abc import ABC, abstractmethod
 import math
 import psi4
 import numpy
-from .trajectory import Aggregate, TimePoint, Trajectory
+from .aggregate import Aggregate
+from .trajectory import TimePoint, Trajectory
 from .hamiltonian import Isolated_Hamiltonian
 
 class System:
@@ -18,8 +19,6 @@ class System:
       self.nstates = nstates
       self.current_state = None
       self.hamiltonian = None
-      #
-      self.trajectory = Trajectory(self.aggregate.all)
       #
       self._m = 1./(numpy.array([self.aggregate.all.mass(i) for i in range(self.aggregate.all.natom())])) * psi4.constants.au2amu
       
@@ -43,9 +42,9 @@ class DynamicalSystem(System, Units):
       Units.__init__(self)
       numpy.random.seed(seed)
       #
+      self.trajectory = Trajectory(self.aggregate)
       self.init_state = init_state
       self.current_state = init_state
-      self.temperature = temperature
       self.dt_class = dt_class * self.fs2au
       if dt_quant is None: dt_quant = dt_class
       self.set_hamiltonian(qm_method)
@@ -56,8 +55,9 @@ class DynamicalSystem(System, Units):
       #
       self.energy = None
 
-  def run(self, nt, out='traj.dat', out_xyz='traj.xyz'):
-      outf = open(out, 'w')
+  def run(self, nt, out_xvf='traj.dat', out_xyz='traj.xyz'):
+      "Run the TSH dynamics"
+      outf = open(out_xvf, 'w')
       outx = open(out_xyz, 'w')
 
       print(" Initial Conditions")
@@ -141,13 +141,16 @@ class DynamicalSystem(System, Units):
       p_new = self.d
 
       # [7] Compute probabilities from current state
-      print(self.d.real.diagonal())
+      #print(self.d.real.diagonal())
       d_ii= self.d.real.diagonal()[self.current_state]
       d_ij= self.d[self.current_state].real
       s_i = s[self.current_state]
       P = 2.0 * dt * d_ij * s_i / d_ii
       P[P<0.0] = 0.0
-      print(P)
+      norm = numpy.linalg.norm(P)
+      if norm> 0.0: P/= norm
+      #print(P)
+      #print(s_new.ci_e)
 
       # [8] Hop if required
       point_next = TimePoint(x_new, v_new, f_new, s_new)

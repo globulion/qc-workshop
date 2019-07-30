@@ -1,10 +1,9 @@
 #!/usr/bin/python3
-"""Quantum Computer Module.
+"""Trajectory Module.
 
 .. moduleauthor:: Bartosz Błasiak <blasiak.bartosz@gmail.com>
 
 """
-from abc import ABC, abstractmethod
 import psi4
 import math
 import numpy
@@ -26,9 +25,9 @@ class TimePoint:
       out.write(log)
 
 class Trajectory:
-  def __init__(self, molecules):
-      self.molecules = molecules
-      self.natoms = molecules.natom()
+  def __init__(self, aggregate):
+      self.aggregate = aggregate
+      self.natoms = aggregate.all.natom()
       self.point_last = None
       self.point_prev = None
   def add_point(self, point):
@@ -43,7 +42,7 @@ class Trajectory:
       e = 0.0
       for i in range(self.natoms):
           vi = self.point_last.v[i]
-          e += self.molecules.mass(i) * numpy.dot(vi, vi) / psi4.constants.au2amu
+          e += self.aggregate.all.mass(i) * numpy.dot(vi, vi) / psi4.constants.au2amu
       e/= 2.0 
       return e
   def rescale_velocities(self, e_kin):
@@ -59,21 +58,3 @@ class Trajectory:
       alpha = math.sqrt(temp/t)
       self.point_last.v*= alpha
       print("Warning: no Maxwell-Boltzmann distribution is applied yet")
-
-class Aggregate:
-  def __init__(self, psi4_molecule):
-      self.all = psi4_molecule
-      self.qm = psi4_molecule.extract_subsets(1)
-      self.nfrags = psi4_molecule.nfragments()
-      self.bath = [] if self.nfrags == 1 else [psi4_molecule.extract_subsets(2+i) for i in range(self.nfrags-1)]
-  def update(self, xyz):
-      self.all.set_geometry(xyz)
-      self.qm = self.all.extract_subsets(1)
-      self.bath = [self.all.extract_subsets(2+i) for i in range(self.nfrags-1)]
-  def save_xyz(self, out):
-      geom = self.all.geometry()
-      geom.scale(psi4.constants.bohr2angstroms)
-      out.write("%d\n\n" % self.all.natom())
-      for i in range(self.all.natom()):                                                              
-          sym = self.all.label(i)
-          out.write("%s %10.6f %10.6f %10.6f\n"%(sym,geom.get(i,0),geom.get(i,1),geom.get(i,2)))

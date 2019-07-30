@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import math
 import psi4
 import numpy
-from .ci_wavefunction import HF_CIWavefunction, CIS_CIWavefunction
+from .ciwavefunction import HF_CIWavefunction, CIS_CIWavefunction
 from ..project_2.cis import CIS
 
 __all__ = ["Computer"]

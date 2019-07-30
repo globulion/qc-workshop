@@ -11,9 +11,9 @@
 # Programming Task
 
 Our task is to write an application that performs the TSH dynamics for a
-molecular aggregate with one molecule being described by the high level
-quantum mechanical method allowing for computing electronic excited states
-(such as CIS, TDDFT, EOM-CC, CASSCF, ADC etc.), an the rest by a low level
+molecular aggregate. We require one molecule to be described by the high level
+quantum mechanical method that allows to compute electronic excited states
+(such as CIS, TDDFT, EOM-CC, CASSCF, ADC etc.), and the rest of the system by a low level
 ground state method (either HF, MP2, CC or just molecular mechanics). We wish to
 be able to choose between various embedding schemes (electronic embedding due to constant
 or variable atomic charges, electronic density, polarizable density embedding and so on).
@@ -24,25 +24,39 @@ if necessary.
 
 ## Specification of Objects and Their Relationships
 
-The most convenient way to start is to establish the structure of the project: data types, 
-objects and relationships between them. Since our task is to model the molecular dynamics, our target object
-will be a *dynamical system*. The schematic representation of such a system for the need of TSH algorithm
+The development of a good object oriented code planning is crucial for efficient and
+pleasant implementation. Ideally, the more code structure resembles
+the actual structure of the problem, the better. For example, we would think of a class
+*Molecule* storing information about molecular fragment as our Born-Oppenheimer model
+with points and sticks representing atoms and connectivity, because we imagine molecules
+this way most of the time. However, we probably would not expect Molecule to be able to
+compute electronic wavefunction (because its simply beyond its scope). However, another class
+(e.g., named *Computer*) could be in charge of solving the Schrodinger equation to obtain
+electronic wavefunction for a given nuclear configuration. Then, objects of class Computer
+would contain attributes of type Molecule. Clearly, opposite relationship is not logical
+(we do not expect Molecule instances to store Computer instance).
+
+Therefore, before starting programming, the most convenient and economical 
+way to start is to establish the structure of the entire project: **data types, 
+objects and relationships between them**. Since our task is to model the molecular dynamics, our target object
+will be a *dynamical system*. The exemplary representation of such a system for the need of TSH algorithm
 is shown below:
 
-<img src="../../doc/figures/plan.png" height="600"/>
+<img src="../../doc/figures/plan.png" height="470"/>
 
 The circles represent certain classes of objects understood as basic abstract building blocks
 of our program.
-It is important to distinguish here between the abstract classes and the actual utility classes
-which will be later on used to instantiate the objects. 
+It is important to distinguish here between the base (maybe even abstract) classes and the actual utility classes
+which will be used to instantiate the objects later on. 
+The eight major base classes were identified:
 
-The six major abstract base classes were identified:
  1. **Aggregate** - this class describes the entire molecular system. It
     contains information about the molecular composition of the aggregate, its 
     coordinates, charge and multiplicity division
-    into fragments, as well as which molecule is in excited state allowed region.
- 2. We probably want the instances of class Aggregate to store objects of type **Molecule**, 
-    referring to particular molecules from the aggregate (such as `psi4.core.Molecule` class).
+    into fragments, as well as which molecule can be in excited state.
+ 2. We want the instances of class Aggregate to store objects of type **Molecule**, 
+    referring to particular molecules from the aggregate. In Psi4, such class is already
+    available (`psi4.core.Molecule` class).
  3. **Hamiltonian** - is to describe the quantum Hamiltonian of an entire aggregate.
     That is to say, here the environmental effects on each molecular wavefunction
     are to be implemented. Object of this class will therefore be responsible for
@@ -52,21 +66,34 @@ The six major abstract base classes were identified:
  4. Each Molecule object will be handled by a separate **Computer** object, that stores
     the actual information about the molecule and its wavefunction. Computer therefore can be viewed
     as sort of interface between the TSH application and certain 
-    method of solving the Schrodinger equation, implemented elsewhere.
+    method of solving the Schrodinger equation, implemented elsewhere. Computers will be in contact with
+    each other through Hamiltonian object.
  5. Computer instances will store the information of the multireference wavefunction
     of a given fragment in instances of type **CIWavefunction**. This class
     describes the composition of an arbitrary set of electronic states in terms of Slater determinants
     as basis functions.
- 6. **Trajectory** object will manage phase space elements in time. It should store 
+ 6. Therefore, a **SlaterDeterminant** class would be very helpful to handle the information
+    on each basis function from the multireference wavefunction. SlaterDeterminant will 
+    store information of the composition of each determinant (orbitals), the source orbitals
+    from the reference determinant (occupied and virtual orbitals), as well as the rule
+    of creating determinant from a reference.
+ 7. **TimePoint** object will manage phase space elements in time. It should store 
     nuclear positions, velocities and forces, as well as copies of
     CIWavefunction objects at a given time.
+ 8. **Trajectory** will collect timepoints in an ordered sequence. It will provide an interface
+    to modify the trajectory (e.g., rescale momenta to conserve energy).
     
     
 ## Implementation
 
-Let us start from the end: implement the classes of smallest range from the above scheme
-(Aggregate, TimePoint),
-and finish with class of largest range (System).
+Let us start from the bottom of the project: 
+implement the classes of the smallest range from the above scheme
+(Molecule, Aggregate, TimePoint), proceede with classes of larger ranges,
+and finally finish with the class of the largest scope (System).
+
+### Molecule
+
+Since this class is available in Psi4 we will directly use `psi4.core.Molecule` class.
 
 ### Aggregate
 
@@ -118,7 +145,6 @@ class TimePoint:
 
 ### Trajectory
 
-
 The next class element, that is probably the smallest in range is Trajectory,
 because it encompasses only TimePoint. Here we decide to store in memory
 only two last time points. There is also a few of very useful functionalities
@@ -164,7 +190,7 @@ class Trajectory(ABC):
 ```
 
 To design the Hamiltonian class, it is best to design first SlaterDeterminant class, since it is of
-lesser range, later design the CIWavefunction, and finally, Computer.
+lesser range, later design the CIWavefunction, and finally, Computer and Hamiltonian.
 
 ### SlaterDeterminant
 
@@ -172,7 +198,7 @@ Here we describe the following construct:
 
 <img src="../../doc/figures/equations/slater-determinant-basis.png" height="50"/>
 
-which is constructed by applying creation and annihilation operators
+which is defined by applying creation and annihilation operators
 on the reference Slater determinant. We only focus here on the
 structure of the determinant. For this,
 we need number of occupied alpha and beta orbitals,
@@ -185,9 +211,10 @@ to virtual orbital *a*, we need to distinguish between two possible rules:
 
 Such rules can be defined via Python tuples e.g. `(i,a)` and `(-i,-a)`, respectively.
 Multiple excitations can be described by lists of tuples with creation/annihilation pairs.
-Below exemplary implementation is provided. Note, that for single excitations
+Below, exemplary implementation is provided. Note, that for single excitations
 we define auxiliary variable `change_alpha` which denotes that the instance referrs to either of the above
-excitation types. In the case of double and multiple excitations, simultaneous alpha and beta
+excitation types. This variable can become handy larer on.
+In the case of double and multiple excitations, simultaneous alpha and beta
 orbital excitations are possible that do not change the multiplicity of the system.
 
 ```python
@@ -233,7 +260,8 @@ couplings). To do that, we need to define all possible Slater determinantal basi
 the reference wavefunction,
 CI state energies (eigenvalues of CI Hamiltonian) as well as CI vectors (eigenvectors of CI Hamiltonian).
 From reference wavefunction we can extract molecular orbitals (occupied and virtual) and other data
-(see psi4.core.Wavefunction object).
+(see psi4.core.Wavefunction object; note that this object contains reference to `psi4.core.BasisSet`
+which we need to compute overlap integrals). 
 
 ```python
 class CIWavefunction(ABC):
@@ -345,10 +373,14 @@ class psi4SCF_Computer(Computer):
 ```
 We set number of states equal to just 1 because there is only ground state.
 Note, how we compute energy and forces directly by interfacing our TSH application
-with Psi4.
+with Psi4. In similar way we could also interface other programs by running them
+from the shell level and reading in the required data. All in one Python class!
 
 In order to implement some description of excited states, we choose to use our 
-CIS implementation from Project II. Here, we decide to introduce several intermediate abstract classes
+CIS implementation from Project II because we can
+easily extract the CI coefficients. 
+However, we already want to think of the future applications and extensions
+so we decide to introduce several intermediate abstract classes
 just to make the code even more encapsulated.
 For example, we assume that so far we have no analytical forces implemented,
 hence we resort to numerical calculation for all excited state methods.
@@ -379,6 +411,11 @@ class myCIS_Computer(CIS_Computer):
       state = CIS_CIWavefunction(cis.ref_wfn, cis.E, cis.W)
       return state
 ```
+
+Other methods such as EOM-CC or ADC could be also interfaced here, being subclasses of `ExcitedState_Computer`.
+For them, we need to add more types of multiconfigurational wavefunction classes, and also
+implement the transformation from the T-amplitudes to CI amplitudes referring to an appropriate
+SlaterDeterminant basis function.
 
 ### Hamiltonian
 
@@ -414,17 +451,24 @@ class Hamiltonian(ABC):
   def iterate_bath(self): pass
 ```
 
+The base class simply runs first the high level computer. If there are molecules
+in low level it starts certain (undefined yet) iterative process that
+involves all the computers. 
 
-For the sake of the workshop, we will consider only isolated QM fragment.
+Of course, the simplest case is to consider only isolated QM fragment.
+We should therefore equip ourselves with a separate applied class
+for that purpose:
 
 ```python
 class Isolated_Hamiltonian(Hamiltonian):
   def __init__(self, molecule, method, nstates):
       Hamiltonian.__init__(self, molecule, method, nstates, method_low=None)
-  def iterate_bath(self): raise ValueError("This Hamiltonian is isolated")
+
+  def iterate_bath(self): 
+      raise ValueError("This Hamiltonian is isolated")
 ```
 
-However
+Below, we sketch possibilities to include environment.
 
 ```python
 class QMMM_Hamiltonian(Hamiltonian):

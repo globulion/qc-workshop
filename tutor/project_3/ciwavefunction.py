@@ -121,6 +121,3 @@ class CIS_CIWavefunction(CIWavefunction):
               det = Single_SlaterDeterminant(self.naocc, self.nbocc, self.nmo, rule)
               dets.append(det)
       return dets
-
-
-
