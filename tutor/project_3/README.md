@@ -22,6 +22,10 @@ electronic Hamiltonian at time *t*, i.e.,
 
 <img src="../../doc/figures/equations/adiabatic-states.png" height="30"/>
 
+The total electronic wavefunction obeys the time-dependent Schrodinger equation
+
+<img src="../../doc/figures/equations/time-dept-schrodinger.png" height="50"/>
+
 Let us assume that for a given *j*th trajectory, system
 is in the *K*th electronic adiabatic state. Then, 
 the forces on atoms can be given by
@@ -31,7 +35,8 @@ the forces on atoms can be given by
 where *u* labels a particular atom. Note that here **f** can be considered
 as a matrix of shape (natoms, 3).
 
-The quantum amplitudes *c(t)* evolve according to a set of coupled partial
+Owing to the time evolution of the electronic wavefunction,
+the quantum amplitudes *c(t)* evolve according to a set of coupled partial
 differential equations of the form
 
 <img src="../../doc/figures/equations/amplitudes.png" height="60"/>
