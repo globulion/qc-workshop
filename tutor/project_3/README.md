@@ -102,7 +102,7 @@ equation and compute derivatives of total energy with respect to the nuclear coo
 Subsequent atomic positions can be computed from velocity Verlet method
 by
 
-<img src="../../doc/figures/equations/new-x.png" height="40"/>
+<img src="../../doc/figures/equations/x-new.png" height="40"/>
 
 ### Compute new wavefunction for newly computed positions
 
@@ -115,7 +115,7 @@ We assume here that in a small time step coupling matrix
 is approximately constant. Therefore, the system of coupled differential equations
 for *c(t)* has the formal solution of the form
 
-<img src="../../doc/figures/equations/new-c.png" height="40"/>
+<img src="../../doc/figures/equations/c-new.png" height="40"/>
 
 Therefore, one must find eigenvalues and eigenvectors of a complex coupling
 matrix in order to evaluate quantum amplitudes.
@@ -135,7 +135,7 @@ If hop occurs, switch PES to the new state. Shift momenta to conserve total ener
 Finally, compute new forces on a current PES. From them, update
 velocities by using the velocity Verlet scheme:
 
-<img src="../../doc/figures/equations/new-v.png" height="40"/>
+<img src="../../doc/figures/equations/v-new.png" height="40"/>
 
 Having updated positions, velocities, forces and quantum amplitudes, as well
 as determining which electronic state is currently occupied, 
