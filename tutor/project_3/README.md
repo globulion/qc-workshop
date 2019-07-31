@@ -73,15 +73,16 @@ of each trajectory provided certain decoherence scheme is applied to amend TSH a
 Since TSH is a stochastic method, we need to run multiple trajectories
 in order to get averages. Provided each trajectory can be run effectively
 independently, the algorithm constitutes of these steps:
- 1. Set up initial conditions.
- 2. Start propagation in time
-    3. Compute forces on atoms assuming current PES *K* and coupling matrix                 
-    4. Compute new positions from velocity Verlet method
-    5. Compute new wavefunction for newly computed positions
-    6. Compute coupling matrix and new quantum amplitudes *c(t)*
-    7. Hop to different PES if required.
-    8. Compute new atomic velocities from velocity Verlet assuming current electronic state
-    9. Start from point 1
+ 1. Set up initial conditions. After that, start propagation in time:
+ 2. Compute forces on atoms assuming current PES *K* and coupling matrix                 
+ 3. Compute new positions from velocity Verlet method
+ 4. Compute new wavefunction for newly computed positions
+ 5. Compute coupling matrix and new quantum amplitudes *c(t)*
+ 6. Hop to different PES if required.
+    i. Compute transition probabilities from current state to all other states
+    ii. Determine whether to hop or not
+    iii. If hop, switch PES to new state. Shift momenta to conserve total energy.
+ 7. Compute new atomic velocities from velocity Verlet assuming current electronic state. Proceed to next time step (point 2).
 
 
 # Programming Task
