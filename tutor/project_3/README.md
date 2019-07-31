@@ -15,18 +15,18 @@ The electronic wavefunction at any given time *t* for
 a *j*th trajectory can be given in terms of
 the adiabatic states
 
-<img src="../../doc/figures/full-psi.png" height="40"/>
+<img src="../../doc/figures/equations/full-psi.png" height="40"/>
 
 that are eigenfunctions of the
 electronic Hamiltonian at time *t*, i.e.,
 
-<img src="../../doc/figures/adiabatic-states.png" height="40"/>
+<img src="../../doc/figures/equations/adiabatic-states.png" height="40"/>
 
 Let us assume that for a given *j*th trajectory, system
 is in the *K*th electronic adiabatic state. Then, 
 the forces on atoms can be given by
 
-<img src="../../doc/figures/force.png" height="40"/>
+<img src="../../doc/figures/equations/force.png" height="40"/>
 
 where *u* labels a particular atom. Note that here **f** can be considered
 as a matrix of shape (natoms, 3).
@@ -34,15 +34,15 @@ as a matrix of shape (natoms, 3).
 The quantum amplitudes *c(t)* evolve according to a set of coupled partial
 differential equations of the form
 
-<img src="../../doc/figures/amplitudes.png" height="40"/>
+<img src="../../doc/figures/equations/amplitudes.png" height="40"/>
 
 where the coupling (hermitian) matrix is given by
 
-<img src="../../doc/figures/coupling-matrix.png" height="40"/>
+<img src="../../doc/figures/equations/coupling-matrix.png" height="40"/>
 
 whereas the non-adiabatic coupling constants are
 
-<img src="../../doc/figures/nonadiabatic-coupling.png" height="40"/>
+<img src="../../doc/figures/equations/nonadiabatic-coupling.png" height="40"/>
 
 
 ## Algorithm
