@@ -15,18 +15,18 @@ The electronic wavefunction at any given time *t* for
 a *j*th trajectory can be given in terms of
 the adiabatic states
 
-<img src="../../doc/figures/equations/full-psi.png" height="40"/>
+<img src="../../doc/figures/equations/full-psi.png" height="30"/>
 
 that are eigenfunctions of the
 electronic Hamiltonian at time *t*, i.e.,
 
-<img src="../../doc/figures/equations/adiabatic-states.png" height="40"/>
+<img src="../../doc/figures/equations/adiabatic-states.png" height="30"/>
 
 Let us assume that for a given *j*th trajectory, system
 is in the *K*th electronic adiabatic state. Then, 
 the forces on atoms can be given by
 
-<img src="../../doc/figures/equations/force.png" height="40"/>
+<img src="../../doc/figures/equations/force.png" height="50"/>
 
 where *u* labels a particular atom. Note that here **f** can be considered
 as a matrix of shape (natoms, 3).
@@ -38,11 +38,11 @@ differential equations of the form
 
 where the coupling (hermitian) matrix is given by
 
-<img src="../../doc/figures/equations/coupling-matrix.png" height="40"/>
+<img src="../../doc/figures/equations/coupling-matrix.png" height="30"/>
 
 whereas the non-adiabatic coupling constants are
 
-<img src="../../doc/figures/equations/nonadiabatic-coupling.png" height="40"/>
+<img src="../../doc/figures/equations/nonadiabatic-coupling.png" height="30"/>
 
 The task is, in each trajectory,
 to classically propagate system
@@ -102,7 +102,7 @@ equation and compute derivatives of total energy with respect to the nuclear coo
 Subsequent atomic positions can be computed from velocity Verlet method
 by
 
-<img src="../../doc/figures/equations/x-new.png" height="40"/>
+<img src="../../doc/figures/equations/x-new.png" height="50"/>
 
 ### Compute new wavefunction for newly computed positions
 
@@ -115,7 +115,7 @@ We assume here that in a small time step coupling matrix
 is approximately constant. Therefore, the system of coupled differential equations
 for *c(t)* has the formal solution of the form
 
-<img src="../../doc/figures/equations/c-new.png" height="40"/>
+<img src="../../doc/figures/equations/c-new.png" height="30"/>
 
 Therefore, one must find eigenvalues and eigenvectors of a complex coupling
 matrix in order to evaluate quantum amplitudes.
@@ -135,7 +135,7 @@ If hop occurs, switch PES to the new state. Shift momenta to conserve total ener
 Finally, compute new forces on a current PES. From them, update
 velocities by using the velocity Verlet scheme:
 
-<img src="../../doc/figures/equations/v-new.png" height="40"/>
+<img src="../../doc/figures/equations/v-new.png" height="50"/>
 
 Having updated positions, velocities, forces and quantum amplitudes, as well
 as determining which electronic state is currently occupied, 
@@ -330,7 +330,7 @@ lesser range, later design the CIWavefunction, and finally, Computer and Hamilto
 
 Here we describe the following construct:
 
-<img src="../../doc/figures/equations/slater-determinant-basis.png" height="50"/>
+<img src="../../doc/figures/equations/slater-determinant-basis.png" height="30"/>
 
 which is defined by applying creation and annihilation operators
 on the reference Slater determinant. We only focus here on the
