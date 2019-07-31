@@ -34,7 +34,7 @@ as a matrix of shape (natoms, 3).
 The quantum amplitudes *c(t)* evolve according to a set of coupled partial
 differential equations of the form
 
-<img src="../../doc/figures/equations/amplitudes.png" height="40"/>
+<img src="../../doc/figures/equations/amplitudes.png" height="60"/>
 
 where the coupling (hermitian) matrix is given by
 
@@ -44,8 +44,45 @@ whereas the non-adiabatic coupling constants are
 
 <img src="../../doc/figures/equations/nonadiabatic-coupling.png" height="40"/>
 
+The task is, in each trajectory,
+to classically propagate system
+by integrating Newton's equations of motion,
+solve the quantum amplitude equations and
+determine if the quantum transition to another state
+is probable and should be carried out (hop) based
+on certain criterion. If hop occurs for a given trajectory,
+then momenta must be altered in some way to conserve total energy.
+
+In general, TSH algorithm assumes that all trajectories 
+are independent from each other. However, it leats to unphysical
+results. This can be understood by imagining more accurate and rigorous approach,
+in which electrons and nuclei are treated fully quantum mechanically.
+Then, states are better described by quantum wavepackets.
+Wavepackets, that are
+evolving on different PES will eventually decouple from each other
+in a multiatomic system. However, in TSH method we force all the adiabatic
+states to follow a current PES which will lead to unphysical coherences
+between states after long time, even after performing a hop. In effect,
+the quantum amplitudes *c(t)* tend to drag still on state *K* even after a hop to
+a new PES *M*. This 'decoherence problem' has to be addressed as well.
+In effect, few methods allowed TSH algorithm to retain effective independence
+of each trajectory provided certain decoherence scheme is applied to amend TSH algorithm.
 
 ## Algorithm
+
+Since TSH is a stochastic method, we need to run multiple trajectories
+in order to get averages. Provided each trajectory can be run effectively
+independently, the algorithm constitutes of these steps:
+ 1. Set up initial conditions.
+ 2. Start propagation in time
+    3. Compute forces on atoms assuming current PES *K* and coupling matrix                 
+    4. Compute new positions from velocity Verlet method
+    5. Compute new wavefunction for newly computed positions
+    6. Compute coupling matrix and new quantum amplitudes *c(t)*
+    7. Hop to different PES if required.
+    8. Compute new atomic velocities from velocity Verlet assuming current electronic state
+    9. Start from point 1
+
 
 # Programming Task
 

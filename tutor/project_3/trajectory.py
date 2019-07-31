@@ -51,10 +51,11 @@ class Trajectory:
       e = self.kinetic_energy()
       if e> 0.0: alpha = math.sqrt(e_kin/e)
       else: alpha = 0.0
+      print("Alpha=",alpha)
       self.point_last.v*= alpha
   def canonicalize_velocities(self, temp): 
       e_kin = self.kinetic_energy()
-      t = 2.0/3.0 * e_kin / psi4.constants.kb * psi4.constants.hartree2J
+      t = 2.0/(3.0*self.natoms) * e_kin / psi4.constants.kb * psi4.constants.hartree2J 
       alpha = math.sqrt(temp/t)
       self.point_last.v*= alpha
       print("Warning: no Maxwell-Boltzmann distribution is applied yet")

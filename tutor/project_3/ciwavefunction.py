@@ -45,6 +45,7 @@ class CIWavefunction(ABC):
   "Multiconfigurational state composed of Slater determinants as basis set"
   def __init__(self, ref_wfn, E, W):
       ABC.__init__(self)
+      self.ref_wfn = ref_wfn
       self.ci_e = E.copy()
       self.ci_c = W.copy()
       self.ca_o = ref_wfn.Ca_subset("AO","OCC").to_array(dense=True)

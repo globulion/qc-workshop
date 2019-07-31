@@ -11,6 +11,7 @@ import numpy
 from .aggregate import Aggregate
 from .trajectory import TimePoint, Trajectory
 from .hamiltonian import Isolated_Hamiltonian
+from ..psithon.util import rearrange_eigenpairs, _reorder, check_sim
 
 class System:
   def __init__(self, molecule, temperature=0.0, nstates=1):
@@ -46,7 +47,7 @@ class DynamicalSystem(System, Units):
       self.init_state = init_state
       self.current_state = init_state
       self.dt_class = dt_class * self.fs2au
-      if dt_quant is None: dt_quant = dt_class
+      self.dt_quant = dt_class * self.fs2au if dt_quant is None else dt_quant * self.fs2au
       self.set_hamiltonian(qm_method)
       self.dim = self.hamiltonian.computers[0].nstates
       #
@@ -55,7 +56,7 @@ class DynamicalSystem(System, Units):
       #
       self.energy = None
 
-  def run(self, nt, out_xvf='traj.dat', out_xyz='traj.xyz'):
+  def run(self, nt, out_xvf='traj.dat', out_xyz='traj.xyz', center_mode='qm'):
       "Run the TSH dynamics"
       outf = open(out_xvf, 'w')
       outx = open(out_xyz, 'w')
@@ -63,23 +64,43 @@ class DynamicalSystem(System, Units):
       print(" Initial Conditions")
       self.set_initial_conditions()
       self.trajectory.save(outf)
-      self.aggregate.save_xyz(outx)
+      self.aggregate.save_xyz(outx, center_mode)
 
       for i in range(nt): 
           t = i*self.dt_class*self.au2fs
           print(" t = %13.3f [fs]  s = %2d" % (t, self.current_state))
           self.propagate()
           self.trajectory.save(outf)
-          self.aggregate.save_xyz(outx)
+          self.aggregate.save_xyz(outx, center_mode)
 
       outf.close()
       outx.close()
 
-  def hop(self, g): 
+  def hop(self, g, e_curr, e_old): 
+      "Try to hop from k to m"
       zeta = numpy.random.random()
-      for state in range(g.size):
-          if g[:(state)].sum() < zeta < g[:(state+1)].sum():
-             self.current_state = state
+      print("We hop!")
+      e_k = e_old[self.current_state]
+      m_hop = None
+      for m in range(g.size):
+          sum_with_m    = 0.0
+          for l in range(g.size):
+              #if l!= self.current_state:
+                 sum_with_m += g[l]
+          sum_without_m = sum_with_m - g[m]
+          if sum_without_m < zeta <= sum_with_m:
+             e_m = e_curr[m]
+             if e_k >= e_m:
+                print("Hop %d --> %d" % (self.current_state, m))
+                m_hop = m
+      if m_hop is not None:
+         self.current_state = m_hop
+         # reset electronic populations
+         self.c.fill(0.0)
+         self.c[m_hop] = 1.0
+         self._update_density_matrix()
+         #if g[:(state)].sum() < zeta < g[:(state+1)].sum():
+         #   self.current_state = state
 
   def set_initial_conditions(self):
       # amplitudes
@@ -101,6 +122,8 @@ class DynamicalSystem(System, Units):
       self.trajectory.rescale_velocities(0.01)
       #
       self.energy = s.ci_e[self.init_state] + self.aggregate.all.nuclear_repulsion_energy() + self.trajectory.kinetic_energy()
+      #
+      self.__u_prev = None
 
   def propagate(self):
       dt = self.dt_class
@@ -111,54 +134,76 @@ class DynamicalSystem(System, Units):
       s_old = self.trajectory.point_last.s
       c_old = self.c.copy()
       p_old = self.d.copy()
+      e_k   = s_old.ci_e[self.current_state]
+      ek_old= self.trajectory.kinetic_energy()
+      n_old = self.aggregate.all.nuclear_repulsion_energy()
 
-      # [1] Compute next x
+      # [6] Compute next positions
       x_new = x_old + dt*v_old + 0.5 * dt*dt * a_old
       self.update(psi4.core.Matrix.from_array(x_new))
+      n_new = self.aggregate.all.nuclear_repulsion_energy()
 
-      # [2] Compute next wavefunction and forces
+      # [1] Compute next wavefunction
       self.hamiltonian.compute()
       s_new = self.hamiltonian.computers[0].ciwfn
-      f_new = self.hamiltonian.computers[0].forces[self.current_state]
+      #f     = self.hamiltonian.computers[0].forces
+      #if 0:
+      #   ci_e = s_new.ci_e                                                                                      
+      #   ci_c_= s_new.ci_c
+      #   ci_e, ci_c, sim = rearrange_eigenpairs(ci_c_, s_old.ci_c, ci_e, return_sim=True)
+      #   s_new.ci_e = ci_e
+      #   s_new.ci_c = ci_c
+      #   log = check_sim(sim)
+      #   if 'ERROR' in log: raise ValueError("Error in state rearrangement! %s\n\n%s" % (str(sim), str(ci_c_)))
+      #   f = _reorder(f, sim)
+      #   print(sim)
 
-      # [3] Compute next velocities
-      v_new = v_old + 0.5 * dt * (a_old + f_new * self._m[:, numpy.newaxis])
-
-      # [4] Grab previous Hamiltonian matrix in adiabatic basis
+      # [2] Grab previous Hamiltonian matrix in adiabatic basis
+      #H = 0.5 * numpy.diag(s_old.ci_e + s_new.ci_e)
       H = numpy.diag(s_old.ci_e)
-
-      # [4] Compute non-adiabatic coupling constants sigma_ij
+                                                                   
+      # [3] Compute non-adiabatic coupling constants sigma_ij
       S = s_old.overlap(s_new)
       s =(S - S.T) / (2.0 * dt)
-
-      # [5] Compute G operator matrix
+                                                                   
+      # [4] Compute G operator matrix
       G = H - 1.0j*s.T
-
-      # [6] Compute next dynamical amplitudes
+                                                                   
+      # [5] Compute next dynamical amplitudes
       c_new = self._step_quantum(c_old, G)
       self.c = c_new.copy()
       self._update_density_matrix()
       p_new = self.d
 
-      # [7] Compute probabilities from current state
-      #print(self.d.real.diagonal())
+      # [8] Compute probabilities from current state
+      print("D", self.d.real.diagonal())
       d_ii= self.d.real.diagonal()[self.current_state]
       d_ij= self.d[self.current_state].real
       s_i = s[self.current_state]
       P = 2.0 * dt * d_ij * s_i / d_ii
       P[P<0.0] = 0.0
       norm = numpy.linalg.norm(P)
-      if norm> 0.0: P/= norm
-      #print(P)
-      #print(s_new.ci_e)
+      #if norm>1.0: P/= norm
+      print("P", P)
 
-      # [8] Hop if required
+      # [9] Hop if required
+      #e_kin_target = self.energy - self.aggregate.all.nuclear_repulsion_energy() - s_new.ci_e[self.current_state]
+      #if e_kin_target > 0.0: 
+      self.hop(P, s_new.ci_e, s_old.ci_e)
+      e_m = s_new.ci_e[self.current_state]
+
+      # [7] Compute next forces and velocities
+      f_new = f[self.current_state]
+      v_new = v_old + 0.5 * dt * (a_old + f_new * self._m[:, numpy.newaxis])
+      #v_new.fill(0.0)
+      print("V",v_new)
+
       point_next = TimePoint(x_new, v_new, f_new, s_new)
       self.trajectory.add_point(point_next)
-      e_kin_target = self.energy - self.aggregate.all.nuclear_repulsion_energy() - s_new.ci_e[self.current_state]
-      if e_kin_target > 0: 
-         self.hop(P)
-         self.trajectory.rescale_velocities(e_kin_target)
+      e_kin_target = ek_old + e_k - e_m + n_old - n_new
+      print("T=",e_kin_target, e_k, e_m, e_kin_target)
+      if e_kin_target> 0.0: self.trajectory.rescale_velocities(e_kin_target)
+      #   self.trajectory.rescale_velocities(e_kin_target)
 
 
   def _density_matrix(self, c):
@@ -168,6 +213,8 @@ class DynamicalSystem(System, Units):
       self.d = self._density_matrix(self.c)
 
   def _step_quantum(self, c, G): 
-      g, u = numpy.linalg.eig(G)
-      e = numpy.linalg.multi_dot([u, numpy.diag(numpy.exp(-1.0j*g*self.dt_class)), u.T])
-      return numpy.dot(c, e)
+      #g, u = numpy.linalg.eig(G)
+      #e = numpy.linalg.multi_dot([u, numpy.diag(numpy.exp(-1.0j*g*self.dt_class)), u.T])
+      g, u = numpy.linalg.eig(-1.0j*G)
+      e = numpy.linalg.multi_dot([u, numpy.diag(numpy.exp(g*self.dt_quant)), u.T])
+      return numpy.dot(c, e.T)
