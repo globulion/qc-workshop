@@ -1,10 +1,49 @@
-# Molerucal Dynamics
+# Trajectory Surface Hopping
 
-## Newtonian Molecular Dynamics
+One of efficient and practical ways to approximately 
+propagate a molecule in electronically excited state
+is to perform the trajectory surface hopping (TSH) dynamics.
+In this approximation, a model mixed classical/quantum system
+is defined as an ensemble of trajectories in which:
+ 1. Nuclear degrees of freedom obey Newtonian dynamics
+    based on a current electronic potential energy surface (PES)
+    by solving the Newton's equations of motion
+ 2. Electronic defrees of freedom are treated quantum mechanically
+    by solving the time-dependent Schrodinger equation of motion
 
-## Quantum Dynamics
+The electronic wavefunction at any given time *t* for 
+a *j*th trajectory can be given in terms of
+the adiabatic states
 
-## Trajectory Surface Hopping
+<img src="../../doc/figures/full-psi.png" height="40"/>
+
+that are eigenfunctions of the
+electronic Hamiltonian at time *t*, i.e.,
+
+<img src="../../doc/figures/adiabatic-states.png" height="40"/>
+
+Let us assume that for a given *j*th trajectory, system
+is in the *K*th electronic adiabatic state. Then, 
+the forces on atoms can be given by
+
+<img src="../../doc/figures/force.png" height="40"/>
+
+where *u* labels a particular atom. Note that here **f** can be considered
+as a matrix of shape (natoms, 3).
+
+The quantum amplitudes *c(t)* evolve according to a set of coupled partial
+differential equations of the form
+
+<img src="../../doc/figures/amplitudes.png" height="40"/>
+
+where the coupling (hermitian) matrix is given by
+
+<img src="../../doc/figures/coupling-matrix.png" height="40"/>
+
+whereas the non-adiabatic coupling constants are
+
+<img src="../../doc/figures/nonadiabatic-coupling.png" height="40"/>
+
 
 ## Algorithm
 
