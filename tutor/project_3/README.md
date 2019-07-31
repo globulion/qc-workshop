@@ -79,10 +79,67 @@ independently, the algorithm constitutes of these steps:
  4. Compute new wavefunction for newly computed positions
  5. Compute coupling matrix and new quantum amplitudes *c(t)*
  6. Hop to different PES if required.
-    i. Compute transition probabilities from current state to all other states
-    ii. Determine whether to hop or not
-    iii. If hop, switch PES to new state. Shift momenta to conserve total energy.
  7. Compute new atomic velocities from velocity Verlet assuming current electronic state. Proceed to next time step (point 2).
+
+
+### Initial conditions
+
+One can start all trajectories from the same or different initial condition.
+Nuclear initial conditions (velocities, positions of atoms) 
+should be carefully prepared based on thermodynamic ensemble of state in question
+(eiger sampled from classical distribution or quantum Wigner distribution
+for normal mode sampling). Electronic initial conditions can be applied by simply
+setting quantum amplitude of the initial electronic state to 1, and the rest to 0.
+
+### Compute forces and coupling matrices
+
+For a given nuclear configuration, solve the time-independent Schrodinger
+equation and compute derivatives of total energy with respect to the nuclear coordinates
+(either analytically, if available, or numerically).
+
+### Compute atomic positions
+
+Subsequent atomic positions can be computed from velocity Verlet method
+by
+
+<img src="../../doc/figures/equations/new-x.png" height="40"/>
+
+### Compute new wavefunction for newly computed positions
+
+Solve time-independent Schrodinger equation, new adiabatic states, energies
+and coupling matrix
+
+### Propagate quantum amplitudes
+
+We assume here that in a small time step coupling matrix
+is approximately constant. Therefore, the system of coupled differential equations
+for *c(t)* has the formal solution of the form
+
+<img src="../../doc/figures/equations/new-c.png" height="40"/>
+
+Therefore, one must find eigenvalues and eigenvectors of a complex coupling
+matrix in order to evaluate quantum amplitudes.
+
+### Hop to different PES if required.
+
+First, compute transition probabilities from current state to all other states.
+For this, we use the fewest switches algorithm of Tully:
+
+Next, determine whether to hop or not.
+
+If hop occurs, switch PES to the new state. Shift momenta to conserve total energy.
+
+
+### Compute new atomic atomic forces and velocities
+
+Finally, compute new forces on a current PES. From them, update
+velocities by using the velocity Verlet scheme:
+
+<img src="../../doc/figures/equations/new-v.png" height="40"/>
+
+Having updated positions, velocities, forces and quantum amplitudes, as well
+as determining which electronic state is currently occupied, 
+proceed to next time step and continue the dynamics.
 
 
 # Programming Task
