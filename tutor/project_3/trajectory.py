@@ -47,15 +47,20 @@ class Trajectory:
       return e
   def rescale_velocities(self, e_kin):
       "Berendsen v-rescale thermostat"
-      #if e_kin < 0: e_kin = 0.0
+      assert(e_kin >= 0.0)
       e = self.kinetic_energy()
+      #print(e_kin, e)
       if e> 0.0: alpha = math.sqrt(e_kin/e)
       else: alpha = 0.0
-      print("Alpha=",alpha)
+      #print("Alpha=",alpha)
       self.point_last.v*= alpha
   def canonicalize_velocities(self, temp): 
-      e_kin = self.kinetic_energy()
-      t = 2.0/(3.0*self.natoms) * e_kin / psi4.constants.kb * psi4.constants.hartree2J 
+      t = self.temperature()
       alpha = math.sqrt(temp/t)
       self.point_last.v*= alpha
       print("Warning: no Maxwell-Boltzmann distribution is applied yet")
+  def temperature(self):
+      kb = psi4.constants.kb / psi4.constants.hartree2J
+      t = 2.0/(3.0*self.natoms) * self.kinetic_energy() / kb
+      #print("conversion", 2.0/(3.0*self.natoms)/kb)
+      return t

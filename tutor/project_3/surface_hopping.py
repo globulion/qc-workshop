@@ -82,8 +82,12 @@ class DynamicalSystem(System, Units):
 
       for i in range(nt): 
           t = i*self.dt_class*self.au2fs
-          print(" t = %13.3f [fs]  s = %2d" % (t, self.current_state))
+          print(" t = %13.3f [fs]  s = %2d  T = %6.1f [K]" % (t, self.current_state, self.temperature))
           self.propagate()
+          print(" Occupancies: ")
+          print("%8.3f"*len(self.p) % tuple(self.d.real.diagonal()))
+          print(" Transition Probabilities: ")
+          print("%8.3f"*len(self.p) % tuple(self.p))
           self.trajectory.save(outf)
           self.aggregate.save_xyz(outx, center_mode)
 
@@ -93,19 +97,20 @@ class DynamicalSystem(System, Units):
   def try_to_hop(self, g, e_curr, e_old): 
       "Try to hop from k to m"
       zeta = numpy.random.random()
-      print("We hop!")
+      print("Try to hop! z = %7.4f" % zeta)
       e_k = e_old[self.current_state]
       m_hop = None
+      sum_with_m = g.sum()
       for m in range(g.size):
-          sum_with_m    = 0.0
-          for l in range(g.size):
-              #if l!= self.current_state:
-                 sum_with_m += g[l]
           sum_without_m = sum_with_m - g[m]
           if sum_without_m < zeta <= sum_with_m:
+             print("Almost hop!")
              e_m = e_curr[m]
              if e_k >= e_m:
                 print("Hop %d --> %d" % (self.current_state, m))
+                m_hop = m
+             else: 
+                print("Hop is frustrated!")
                 m_hop = m
       if m_hop is not None:
          self.current_state = m_hop
@@ -116,7 +121,7 @@ class DynamicalSystem(System, Units):
       self.c = numpy.zeros(self.dim, dtype=numpy.complex128)
       self.c[self.init_state] = 1.0+0.0j
       # density matrix
-      self._update_density_matrix()
+      self._update_density_matrix(self.c)
       # Hamiltonian
       self.hamiltonian.compute()
       # phase space
@@ -128,9 +133,10 @@ class DynamicalSystem(System, Units):
       #
       self.trajectory.add_point(point_init)
       self.trajectory.canonicalize_velocities(self.temperature)
-      self.trajectory.rescale_velocities(0.01)
+      #self.trajectory.rescale_velocities(0.01)
       #
       self.energy = s.ci_e[self.init_state] + self.aggregate.all.nuclear_repulsion_energy() + self.trajectory.kinetic_energy()
+      print("Temp init= ", self.trajectory.temperature())
 
   def propagate(self):
       dt = self.dt_class
@@ -180,15 +186,14 @@ class DynamicalSystem(System, Units):
       self._update_density_matrix(c_new)
 
       # [8] Compute probabilities from current state
-      print("D", self.d.real.diagonal())
       d_ii= self.d.diagonal()[self.current_state].real
       d_ij= self.d[self.current_state].real
       s_i = s[self.current_state]
       P = 2.0 * dt * d_ij * s_i / d_ii
-      #P[P<0.0] = 0.0
+      P[P<0.0] = 0.0
       norm = numpy.linalg.norm(P)
       #if norm>1.0: P/= norm
-      print("P", P)
+      self.p = P
 
       # [9] Hop if required
       self.try_to_hop(P, s_new.ci_e, s_old.ci_e)
@@ -198,14 +203,14 @@ class DynamicalSystem(System, Units):
       f_new = self.hamiltonian.computers[0].forces[self.current_state]
       v_new = v_old + 0.5 * dt * (a_old + f_new * self.aggregate._mrec[:, numpy.newaxis])
       #v_new.fill(0.0)
-      print("V",v_new)
 
       # [8] Save
       point_next = TimePoint(x_new, v_new, f_new, s_new)
       self.trajectory.add_point(point_next)
       e_kin_target = Tkin_old + e_el_k - e_el_m + nrep_old - nrep_new
-      print("T=",e_kin_target, e_k, e_m, e_kin_target)
+      #print("T=",e_kin_target, e_el_k, e_el_m)
       if e_kin_target> 0.0: self.trajectory.rescale_velocities(e_kin_target)
+      self.temperature = self.trajectory.temperature()
 
 
   def _density_matrix(self, c):
