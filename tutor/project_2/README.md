@@ -5,7 +5,7 @@ the configuration interaction singles (CIS) method.
 In this method, the electronic wavefunction of a molecule
 is assumed to be given by
 
-<img src="../../doc/figures/equations/cis-ansatz.png" height="40"/>
+<img src="../../doc/figures/equations/cis-ansatz.png" height="50"/>
 
 Effective Hamiltonian can be constructed in the basis of all these
 Slater determinants. The form before integrating out the spin coordinates
@@ -15,7 +15,7 @@ is as follows:
 
 where the Fock matrix elements are given by
 
-<img src="../../doc/figures/equations/fock.png" height="40"/>
+<img src="../../doc/figures/equations/fock.png" height="50"/>
 
 In the above equation, *h* is the one-electron core Hamiltonian
 operator
@@ -30,7 +30,7 @@ Note that we need to explicitly care about electron spins when evaluating
 Hamiltonian matrix elements in the Slater determinant basis.
 The CIS Hamiltonian can be drawn like this:
 
-<img src="../../doc/figures/equations/cis-hamiltonian.png" height="30"/>
+<img src="../../doc/figures/cis-hamiltonian.png" height="30"/>
 
 The first diagonal block is just one number, equal to the reference (ground state) electronic
 energy, obtained by solving the Hartree-Fock problem. The offdiagonal blocks

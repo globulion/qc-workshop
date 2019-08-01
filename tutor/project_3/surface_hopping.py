@@ -84,12 +84,12 @@ class DynamicalSystem(System, Units):
           t = i*self.dt_class*self.au2fs
           print(" t = %13.3f [fs]  s = %2d  T = %6.1f [K]" % (t, self.current_state, self.temperature))
           self.propagate()
+          self.trajectory.save(outf)
+          self.aggregate.save_xyz(outx, center_mode)
           print(" Occupancies: ")
           print("%8.3f"*len(self.p) % tuple(self.d.real.diagonal()))
           print(" Transition Probabilities: ")
           print("%8.3f"*len(self.p) % tuple(self.p))
-          self.trajectory.save(outf)
-          self.aggregate.save_xyz(outx, center_mode)
 
       outf.close()
       outx.close()
