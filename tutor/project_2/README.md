@@ -30,7 +30,7 @@ Note that we need to explicitly care about electron spins when evaluating
 Hamiltonian matrix elements in the Slater determinant basis.
 The CIS Hamiltonian can be drawn like this:
 
-<img src="../../doc/figures/cis-hamiltonian.png" height="30"/>
+<img src="../../doc/figures/cis-hamiltonian.png" height="130"/>
 
 The first diagonal block is just one number, equal to the reference (ground state) electronic
 energy, obtained by solving the Hartree-Fock problem. The offdiagonal blocks
