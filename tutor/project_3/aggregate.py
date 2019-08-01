@@ -4,7 +4,7 @@
 .. moduleauthor:: Bartosz Błasiak <blasiak.bartosz@gmail.com>
 
 """
-import psi4
+import psi4, numpy
 
 class Aggregate:
   def __init__(self, psi4_molecule):
@@ -12,6 +12,7 @@ class Aggregate:
       self.qm = psi4_molecule.extract_subsets(1)
       self.nfrags = psi4_molecule.nfragments()
       self.bath = [] if self.nfrags == 1 else [psi4_molecule.extract_subsets(2+i) for i in range(self.nfrags-1)]
+      self._mrec = 1./(numpy.array([self.all.mass(i) for i in range(self.all.natom())])) * psi4.constants.au2amu
   def update(self, xyz):
       self.all.set_geometry(xyz)
       self.qm = self.all.extract_subsets(1)

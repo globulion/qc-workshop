@@ -5,11 +5,11 @@ propagate a molecule in electronically excited state
 is to perform the trajectory surface hopping (TSH) dynamics.
 In this approximation, a model mixed classical/quantum system
 is defined as an ensemble of trajectories in which:
- 1. Nuclear degrees of freedom obey Newtonian dynamics
-    based on a current electronic potential energy surface (PES)
-    by solving the Newton's equations of motion
- 2. Electronic defrees of freedom are treated quantum mechanically
-    by solving the time-dependent Schrodinger equation of motion
+ * Nuclear degrees of freedom obey Newtonian dynamics
+   based on a current electronic potential energy surface (PES)
+   by solving the Newton's equations of motion
+ * Electronic defrees of freedom are treated quantum mechanically
+   by solving the time-dependent Schrodinger equation of motion
 
 The electronic wavefunction at any given time *t* for 
 a *j*th trajectory can be given in terms of
