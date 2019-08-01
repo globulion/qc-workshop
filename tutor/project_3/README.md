@@ -92,8 +92,9 @@ independently, the algorithm constitutes of these steps:
  4. Compute new wavefunction and coupling matrix for newly computed positions
  5. Compute new quantum amplitudes *c(t)*
  6. Hop to different PES if required. Compute new forces assuming the current PES
- 7. Compute new atomic velocities from new forces using velocity Verlet. 
- 8. Proceed to next time step (point 3).
+ 7. Compute new atomic velocities 
+ 8. Apply decoherence correction
+ 9. Proceed to next time step (point 3).
 
 
 ### 1.1 Initial conditions
@@ -201,13 +202,13 @@ First, compute transition probabilities from current state to all other states.
 For this, we use the fewest switches algorithm of Tully,
 in which the probability from state *K* to *L* is given by
 
-<img src="../../doc/figures/equations/prob-tully.png" height="40"/>
+<img src="../../doc/figures/equations/prob-tully.png" height="50"/>
 
 Next, determine whether to hop or not. This is usually realized by
 generating a pseudo-random number *z* from the range [0,1].
 The transition to state *M* occurs if
 
-<img src="../../doc/figures/equations/hop.png" height="40"/>
+<img src="../../doc/figures/equations/hop.png" height="50"/>
 
 If the above condition is satisfied,
 compute the **d** vectors (see below). From them and the current velocities
@@ -217,10 +218,10 @@ estimate the quantity
 
 where
 
-<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-a.png" height="58"/>
+<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-a.png" height="63"/>
 <img src="../../doc/figures/equations/delta-hammes-schiffer-tully-b.png" height="50"/>
 
-Hop can occur only if <img src="../../doc/figures/equations/delta-gt-0.png" height="11"/>.
+Hop can occur only if <img src="../../doc/figures/equations/delta-gt-0.png" height="15"/>.
 If this is not the case, just continue without changes in the current state index.
 Otherwise, hop occurs to state *M*. Switch PES to the new state *M*.
 
@@ -245,7 +246,27 @@ where the auxiliary constant is given by
 
 <img src="../../doc/figures/equations/v-new-hop-gamma.png" height="50"/>
 
-### 1.8 Go to next classical time step
+### 1.8 Apply decoherence correction to quantum amplitudes
+
+If hop occured from state *K* to *M*, adjust the quantum amplitudes for these states.
+The easiest way to do this is simply just to reset them to a new pure state
+for which *c=1* for the *M*th state and 0 for all others. This is somewhat crude
+procedure and leads to discontinuities of quantum amplitudes in time. 
+
+> *Homework*: Better remedy was designed by Truhlar. 
+> In his method, the quantum amplitudes are altered in the following way:
+>
+> <img src="../../doc/figures/equations/dc-corr.png" height="100"/>
+>
+> where tau is given by
+>
+> <img src="../../doc/figures/equations/dc-corr-tau.png" height="50"/>
+> 
+> In the above, the constant *C* is usually assumed to be 0.1 a.u.
+> Implement the Truhlar's method for decoherence correction in our TSH algorithm.
+
+
+### 1.9 Go to next classical time step
 
 Having updated positions, velocities, forces and quantum amplitudes, as well
 as determining which electronic state is currently occupied, 
