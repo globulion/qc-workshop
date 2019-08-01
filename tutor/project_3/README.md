@@ -27,15 +27,22 @@ The total electronic wavefunction obeys the time-dependent Schrodinger equation
 <img src="../../doc/figures/equations/time-dept-schrodinger.png" height="50"/>
 
 Let us assume that for a given *j*th trajectory, system
-is in the *K*th electronic adiabatic state. Then, 
-the forces on atoms can be given by
+is in the *K*th electronic adiabatic state associated with the 
+potential energy surface (PES)
+
+<img src="../../doc/figures/equations/pes.png" height="30"/>
+
+Then, the quasi-classical forces on atoms can be defined by
 
 <img src="../../doc/figures/equations/force.png" height="50"/>
 
 where *u* labels a particular atom. Note that here **f** can be considered
-as a matrix of shape (natoms, 3).
+as a matrix of shape (natoms, 3). Note that the quasi-classical potential
+energy function comprises of the sum of electronic kinetic energy,
+electronic potential energy due to electrons and nuclei, as well as potential
+energy due to nuclear repulsion.
 
-Owing to the time evolution of the electronic wavefunction,
+Owing to the equation for the time evolution of the electronic wavefunction,
 the quantum amplitudes *c(t)* evolve according to a set of coupled partial
 differential equations of the form
 
@@ -45,18 +52,19 @@ where the coupling (hermitian) matrix is given by
 
 <img src="../../doc/figures/equations/coupling-matrix.png" height="30"/>
 
-whereas the non-adiabatic coupling constants are
+with **v** being the velocities of each atom. 
+In the above equation, **d** denotes the non-adiabatic coupling vectors
 
 <img src="../../doc/figures/equations/nonadiabatic-coupling.png" height="30"/>
 
 The task is, in each trajectory,
-to classically propagate system
-by integrating Newton's equations of motion,
+to classically propagate the system
+by integrating the Newton's equations of motion,
 solve the quantum amplitude equations and
 determine if the quantum transition to another state
 is probable and should be carried out (hop) based
 on certain criterion. If hop occurs for a given trajectory,
-then momenta must be altered in some way to conserve total energy.
+then momenta must be altered in some way to conserve the total energy.
 
 In general, TSH algorithm assumes that all trajectories 
 are independent from each other. However, it leats to unphysical
@@ -78,13 +86,14 @@ of each trajectory provided certain decoherence scheme is applied to amend TSH a
 Since TSH is a stochastic method, we need to run multiple trajectories
 in order to get averages. Provided each trajectory can be run effectively
 independently, the algorithm constitutes of these steps:
- 1. Set up initial conditions. After that, start propagation in time:
- 2. Compute forces on atoms assuming current PES *K* and coupling matrix                 
+ 1. Set up initial conditions. 
+ 2. Compute wavefunction, coupling matrix and forces on atoms assuming initial PES.
  3. Compute new positions from velocity Verlet method
- 4. Compute new wavefunction for newly computed positions
- 5. Compute coupling matrix and new quantum amplitudes *c(t)*
- 6. Hop to different PES if required.
- 7. Compute new atomic velocities from velocity Verlet assuming current electronic state. Proceed to next time step (point 2).
+ 4. Compute new wavefunction and coupling matrix for newly computed positions
+ 5. Compute new quantum amplitudes *c(t)*
+ 6. Hop to different PES if required. Compute new forces assuming the current PES
+ 7. Compute new atomic velocities from new forces using velocity Verlet. 
+ 8. Proceed to next time step (point 3).
 
 
 ### Initial conditions
@@ -99,8 +108,29 @@ setting quantum amplitude of the initial electronic state to 1, and the rest to 
 ### Compute forces and coupling matrices
 
 For a given nuclear configuration, solve the time-independent Schrodinger
-equation and compute derivatives of total energy with respect to the nuclear coordinates
-(either analytically, if available, or numerically).
+equation and obtain the multiconfigurational states
+as well as their electronic energies. Compute derivatives of *total energy* with respect to the nuclear coordinates
+(either analytically, if available, or numerically) assuming the initial electronic state PES.
+If forces are not available analytically by any program and their implementation is
+tedious, you can resort to numerical evaluation. The least expensive way is to use
+the forward 2-point finite difference method, i.e.,
+
+<img src="../../doc/figures/equations/force-ff.png" height="40"/>
+
+It requires 3*N* additional evaluations of total energy
+where *N* is the number of atoms.
+
+After forces are computed, we can compute coupling matrix that is necessary for quantum propagation
+of amplitudes and evaluation of probability of hopping to another state.
+Real part
+of a coupling matrix **G** is just a diagonal matrix composed of eigenvalues of electronic Hamiltonian.
+The imaginary part of **G** is equal to the product **v·d**, which
+can be evaluated from finite differences as
+
+<img src="../../doc/figures/equations/scalar-couplings.png" height="43"/>
+
+In most of TSH algorithms, elements of **d** vector are also needed for momentum adjustment
+after a hop is performed in the system. However, for that moment, these vectors are not necessary.
 
 ### Compute atomic positions
 
@@ -111,12 +141,13 @@ by
 
 ### Compute new wavefunction for newly computed positions
 
-Solve time-independent Schrodinger equation, new adiabatic states, energies
-and coupling matrix
+Solve time-independent Schrodinger equation for updated atomic positions, 
+new adiabatic states, energies
+and coupling matrix as we did above.
 
 ### Propagate quantum amplitudes
 
-We assume here that in a small time step coupling matrix
+We assume for a moment that in a small time step coupling matrix
 is approximately constant. Therefore, the system of coupled differential equations
 for *c(t)* has the formal solution of the form
 
@@ -124,6 +155,15 @@ for *c(t)* has the formal solution of the form
 
 Therefore, one must find eigenvalues and eigenvectors of a complex coupling
 matrix in order to evaluate quantum amplitudes.
+
+> *Homework*:
+> In more accurate simulations, one must include time-dependence of the coupling matrix
+> to some extent. The easiest way to do it is to use linear interpolation and extrapolation
+> to compute coupling matrix elements at intermediate time points within the classical time step.
+> Once it is done, quantum amplitudes can be found by numerically integrating set of coupled differential
+> equations, for example, by using the Runge-Kutta method. Use time step 1000 smaller than 
+> the classical time step to solve the quantum amplitudes with such a linear time-dependence of the coupling matrix.
+
 
 ### Hop to different PES if required.
 
