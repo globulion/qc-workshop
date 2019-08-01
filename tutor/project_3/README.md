@@ -213,14 +213,14 @@ If the above condition is satisfied,
 compute the **d** vectors (see below). From them and the current velocities
 estimate the quantity
 
-<img src="../../doc/figures/equations/delta-hammes-schiffer-tully.png" height="40"/>
+<img src="../../doc/figures/equations/delta-hammes-schiffer-tully.png" height="30"/>
 
 where
 
-<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-a.png" height="40"/>
-<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-b.png" height="40"/>
+<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-a.png" height="58"/>
+<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-b.png" height="50"/>
 
-Hop can occur only if <img src="../../doc/figures/equations/delta-gt-0.png" height="7"/>.
+Hop can occur only if <img src="../../doc/figures/equations/delta-gt-0.png" height="11"/>.
 If this is not the case, just continue without changes in the current state index.
 Otherwise, hop occurs to state *M*. Switch PES to the new state *M*.
 
