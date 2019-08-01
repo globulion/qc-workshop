@@ -81,7 +81,7 @@ a new PES *M*. This 'decoherence problem' has to be addressed as well.
 In effect, few methods allowed TSH algorithm to retain effective independence
 of each trajectory provided certain decoherence scheme is applied to amend TSH algorithm.
 
-## Algorithm
+## 1. Algorithm
 
 Since TSH is a stochastic method, we need to run multiple trajectories
 in order to get averages. Provided each trajectory can be run effectively
@@ -96,7 +96,7 @@ independently, the algorithm constitutes of these steps:
  8. Proceed to next time step (point 3).
 
 
-### Initial conditions
+### 1.1 Initial conditions
 
 One can start all trajectories from the same or different initial condition.
 Nuclear initial conditions (velocities, positions of atoms) 
@@ -105,7 +105,7 @@ should be carefully prepared based on thermodynamic ensemble of state in questio
 for normal mode sampling). Electronic initial conditions can be applied by simply
 setting quantum amplitude of the initial electronic state to 1, and the rest to 0.
 
-### Compute forces and coupling matrices
+### 1.2 Compute wavefunction, forces and coupling matrices
 
 For a given nuclear configuration, solve the time-independent Schrodinger
 equation and obtain the multiconfigurational states
@@ -158,24 +158,24 @@ Note that we need to assemble determinants of overlap matrices between molecular
 orbitals of the same kind (either alpha or beta). Overlaps between MO's are
 given by SCF-LCAO-MO transformation matrices as follows
 
-<img src="../../doc/figures/equations/overlap-kl-mo.png" height="40"/>
+<img src="../../doc/figures/equations/overlap-kl-mo.png" height="50"/>
 
 and analogously for the beta spin.
 
-### Compute atomic positions
+### 1.3 Compute new atomic positions
 
 Subsequent atomic positions can be computed from velocity Verlet method
 by
 
 <img src="../../doc/figures/equations/x-new.png" height="50"/>
 
-### Compute new wavefunction for newly computed positions
+### 1.4 Compute new wavefunction for newly computed positions
 
 Solve time-independent Schrodinger equation for updated atomic positions, 
 new adiabatic states, energies
 and coupling matrix as we did above.
 
-### Propagate quantum amplitudes
+### 1.5 Propagate quantum amplitudes
 
 We assume for a moment that in a small time step coupling matrix
 is approximately constant. Therefore, the system of coupled differential equations
@@ -195,22 +195,57 @@ matrix in order to evaluate quantum amplitudes.
 > the classical time step to solve the quantum amplitudes with such a linear time-dependence of the coupling matrix.
 
 
-### Hop to different PES if required.
+### 1.6 Hop to different PES if required.
 
 First, compute transition probabilities from current state to all other states.
-For this, we use the fewest switches algorithm of Tully:
+For this, we use the fewest switches algorithm of Tully,
+in which the probability from state *K* to *L* is given by
 
-Next, determine whether to hop or not.
+<img src="../../doc/figures/equations/prob-tully.png" height="40"/>
 
-If hop occurs, switch PES to the new state. Shift momenta to conserve total energy.
+Next, determine whether to hop or not. This is usually realized by
+generating a pseudo-random number *z* from the range [0,1].
+The transition to state *M* occurs if
+
+<img src="../../doc/figures/equations/hop.png" height="40"/>
+
+If the above condition is satisfied,
+compute the **d** vectors (see below). From them and the current velocities
+estimate the quantity
+
+<img src="../../doc/figures/equations/delta-hammes-schiffer-tully.png" height="40"/>
+
+where
+
+<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-a.png" height="40"/>
+<img src="../../doc/figures/equations/delta-hammes-schiffer-tully-b.png" height="40"/>
+
+Hop can occur only if <img src="../../doc/figures/equations/delta-gt-0.png" height="7"/>.
+If this is not the case, just continue without changes in the current state index.
+Otherwise, hop occurs to state *M*. Switch PES to the new state *M*.
+
+shift momenta to conserve total energy
+in the following way:
 
 
-### Compute new atomic atomic forces and velocities
+### 1.7 Compute new atomic atomic forces and velocities
 
-Finally, compute new forces on a current PES. From them, update
+Since the new electronic state has been determined by checking if hop occurs or not,
+we can compute new forces on a current PES. From them, we update
 velocities by using the velocity Verlet scheme:
 
 <img src="../../doc/figures/equations/v-new.png" height="50"/>
+
+However, if hop just had occured, 
+we need to adjust the velocities
+
+<img src="../../doc/figures/equations/v-new-hop.png" height="50"/>
+
+where the auxiliary constant is given by
+
+<img src="../../doc/figures/equations/v-new-hop-gamma.png" height="50"/>
+
+### 1.8 Go to next classical time step
 
 Having updated positions, velocities, forces and quantum amplitudes, as well
 as determining which electronic state is currently occupied, 
