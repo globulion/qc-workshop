@@ -11,7 +11,7 @@ Effective Hamiltonian can be constructed in the basis of all these
 Slater determinants. The form before integrating out the spin coordinates
 is as follows:
 
-<img src="../../doc/figures/equations/cis-hiajb.png" height="40"/>
+<img src="../../doc/figures/equations/cis-hiajb.png" height="30"/>
 
 where the Fock matrix elements are given by
 
