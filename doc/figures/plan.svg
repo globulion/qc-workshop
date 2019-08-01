@@ -352,9 +352,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.979899"
-     inkscape:cx="328.79177"
-     inkscape:cy="258.6944"
+     inkscape:zoom="0.98994949"
+     inkscape:cx="309.71816"
+     inkscape:cy="355.68488"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -676,52 +676,48 @@
          x="149.26782"
          y="47.329357"
          style="font-size:2.11666656px;fill:#c05151;fill-opacity:1;stroke-width:0.17756721">CIWavefunction</tspan></text>
+    <path
+       style="opacity:1;vector-effect:none;fill:#fff705;fill-opacity:0.05050504;stroke:#b7b100;stroke-width:0.46884152;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.96464646;paint-order:normal"
+       d="m 73.529981,45.152204 c 7.466883,8.803393 9.516798,79.299876 -4.294897,79.299876 -13.811694,0 -56.01155,-38.75756 -56.011551,-50.301132 0,-11.543572 11.864764,-40.144894 25.676459,-40.144894 13.811696,0 26.879174,2.008003 34.629989,11.14615 z"
+       id="path815-7-6-6"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="sssss" />
+    <text
+       transform="rotate(-9.2333394)"
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:2.84107542px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#847831;fill-opacity:1;stroke:none;stroke-width:0.17756721"
+       x="33.976959"
+       y="99.171944"
+       id="text886-9-6-4"><tspan
+         sodipodi:role="line"
+         id="tspan884-3-0-4"
+         x="33.976959"
+         y="99.171944"
+         style="fill:#847831;fill-opacity:1;stroke-width:0.17756721">TimePoint</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:4.23333311px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#b7b100;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="14.021766"
+       y="39.10445"
+       id="text827-1-5"
+       transform="matrix(0.96201755,-0.22855889,0.26540341,0.97642678,0,0)"
+       inkscape:transform-center-x="0.57720891"
+       inkscape:transform-center-y="-1.320022"><tspan
+         sodipodi:role="line"
+         id="tspan825-8-6"
+         x="14.021766"
+         y="39.10445"
+         style="fill:#b7b100;fill-opacity:1;stroke-width:0.26458332">Trajectory</tspan></text>
+    <ellipse
+       style="opacity:1;vector-effect:none;fill:#818e00;fill-opacity:0;stroke:#847831;stroke-width:0.69999999;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal"
+       id="path829-5"
+       cx="60.311676"
+       cy="102.09289"
+       rx="13.024696"
+       ry="9.996953" />
     <g
-       id="g3434"
-       transform="translate(2.1381562,-21.916101)">
-      <ellipse
-         cx="55.470703"
-         cy="120.38857"
-         rx="25.008286"
-         ry="20.901487"
-         id="path815-7-6-6"
-         style="opacity:1;vector-effect:none;fill:#fff705;fill-opacity:0.05050504;stroke:#b7b100;stroke-width:0.46884152;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:0.96464646;paint-order:normal" />
-      <text
-         id="text886-9-6-4"
-         y="120.461"
-         x="28.349947"
-         style="font-style:normal;font-weight:normal;font-size:2.84107542px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#847831;fill-opacity:1;stroke:none;stroke-width:0.17756721"
-         xml:space="preserve"
-         transform="rotate(-9.2333394)"><tspan
-           style="fill:#847831;fill-opacity:1;stroke-width:0.17756721"
-           y="120.461"
-           x="28.349947"
-           id="tspan884-3-0-4"
-           sodipodi:role="line">TimePoint</tspan></text>
-      <text
-         inkscape:transform-center-y="-1.3891629"
-         inkscape:transform-center-x="0.081108973"
-         transform="matrix(0.98018453,0.13021228,-0.10094708,1.0068058,0,0)"
-         id="text827-1-5"
-         y="88.177971"
-         x="59.36739"
-         style="font-style:normal;font-weight:normal;font-size:4.23333311px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#b7b100;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-         xml:space="preserve"><tspan
-           style="fill:#b7b100;fill-opacity:1;stroke-width:0.26458332"
-           y="88.177971"
-           x="59.36739"
-           id="tspan825-8-6"
-           sodipodi:role="line">Trajectory</tspan></text>
-      <ellipse
-         ry="9.996953"
-         rx="13.024696"
-         cy="124.00899"
-         cx="58.173519"
-         id="path829-5"
-         style="opacity:1;vector-effect:none;fill:#818e00;fill-opacity:0;stroke:#847831;stroke-width:0.69999999;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:normal" />
-    </g>
-    <g
-       id="g3426">
+       id="g3426"
+       transform="translate(-0.53453905,13.363476)">
       <ellipse
          cx="47.371563"
          cy="47.031307"
