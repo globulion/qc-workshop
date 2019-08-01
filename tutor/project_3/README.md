@@ -53,7 +53,7 @@ where the coupling (hermitian) matrix is given by
 <img src="../../doc/figures/equations/coupling-matrix.png" height="30"/>
 
 with **v** being the velocities of each atom. 
-In the above equation, **d** denotes the non-adiabatic coupling vectors
+In the above equation, **d** denotes the nonadiabatic coupling vectors
 
 <img src="../../doc/figures/equations/nonadiabatic-coupling.png" height="30"/>
 
@@ -133,13 +133,13 @@ In most of TSH algorithms, elements of **d** vector are also needed for momentum
 after a hop is performed in the system. However, for that moment, these vectors are not necessary.
 
 To compute the **v·d** product, we need to compute the overlap integrals between the two
-different nonadiabatic states at different times. In general, the overlap integral
-between two nonadiabatic states is given by
+different adiabatic states at different times. In general, the overlap integral
+between two adiabatic states is given by
 
 <img src="../../doc/figures/equations/overlap-KL.png" height="40"/>
 
 where **U** and **U**' are the sets of the CI vectors in the basis of Slater determinants
-for first and second nonadiabatic state. Note that the basis is different for both states
+for first and second adiabatic state. Note that the basis is different for both states
 because the molecular orbitals are different at different times (the prime indicates that fact).
 Therefore, we must compute overlap integrals between two different Slater determinants
 having different sets of molecular orbitals. This can be relatively easily computed by 
@@ -148,17 +148,17 @@ having different sets of molecular orbitals. This can be relatively easily compu
 
 where the alpha and beta intermediate matrices are given by
 
-<img src="../../doc/figures/equations/overlap-kl-a.png" height="70"/>
+<img src="../../doc/figures/equations/overlap-kl-a.png" height="120"/>
 
 and 
 
-<img src="../../doc/figures/equations/overlap-kl-b.png" height="70"/>
+<img src="../../doc/figures/equations/overlap-kl-b.png" height="120"/>
 
 Note that we need to assemble determinants of overlap matrices between molecular 
 orbitals of the same kind (either alpha or beta). Overlaps between MO's are
 given by SCF-LCAO-MO transformation matrices as follows
 
-<img src="../../doc/figures/equations/overlap-kl-mo.png" height="30"/>
+<img src="../../doc/figures/equations/overlap-kl-mo.png" height="40"/>
 
 and analogously for the beta spin.
 
@@ -463,7 +463,7 @@ class Double_SlaterDeterminant(SlaterDeterminant):
 Once the structure of Slated determinants is implemented, we can move to CIWavefunction
 description.
 CIWavefunction is a perfect place to implement very useful functionality of
-computing overlap between multireference quantum states (to compute later non-adiabatic
+computing overlap between multireference quantum states (to compute later nonadiabatic
 couplings). To do that, we need to define all possible Slater determinantal basis functions
 (in terms of objects of SlaterDeterminant type). Therefore, we need to provide
 the reference wavefunction,
