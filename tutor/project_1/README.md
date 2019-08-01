@@ -167,3 +167,6 @@ But due to the properties of the localized orbitals the above equation simplifie
 
 The quadrupole moments can tell us about the shape of the orbital. What can you say about
 the orbitals you obtain?
+
+-----------
+[Main Page](https://github.com/globulion/qc-workshop)

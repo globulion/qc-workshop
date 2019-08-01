@@ -79,3 +79,6 @@ or with unrestricted open-shell UHF reference (UCIS),
 we will need to evaluate:
  * Fock matrix elements in MO basis
  * electron repulsion integrals in MO basis
+
+-----------
+[Main Page](https://github.com/globulion/qc-workshop)
