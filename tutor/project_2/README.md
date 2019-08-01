@@ -14,17 +14,17 @@ in which one occupied MO was replaced with one virtual MO, weighted by
 CIS coefficients *c*. In general, any Slater determinant can be
 fully described by the set of alpha and beta spin-orbitals
 
-<img src="../../doc/figures/equations/slater-determinant-formula.png" height="40"/>
+<img src="../../doc/figures/equations/slater-determinant-formula.png" height="50"/>
 
 which are to be arranged in a form of a determinant
 so that all the permutations of electron labels are exhausted,
 and are therefore by construct antisymmetric with respect to interchange
 of electron labels:
 
-<img src="../../doc/figures/equations/slater-determinant-formula-determinant.png" height="70"/>
+<img src="../../doc/figures/equations/slater-determinant-formula-determinant.png" height="100"/>
 
 Effective Hamiltonian can be constructed in the basis of all these
-Slater determinants. The form before integrating out the spin coordinates
+Slater determinants. The form of CIS Hamiltonian before integrating out the spin coordinates
 is as follows:
 
 <img src="../../doc/figures/equations/cis-hiajb.png" height="30"/>
@@ -32,6 +32,11 @@ is as follows:
 where the Fock matrix elements are given by
 
 <img src="../../doc/figures/equations/fock.png" height="60"/>
+
+whereas the two-electron integrals between 4 spinorbitals
+are given in a physicist's notation as
+
+<img src="../../doc/figures/equations/eri-phys.png" height="60"/>
 
 In the above equation, *h* is the one-electron core Hamiltonian
 operator
@@ -65,4 +70,12 @@ and analogously for the twin term. In the above working equations,
 two-electron integrals in MO basis were represented in the Coulomb (or chemist's)
 notation which is given by
 
+<img src="../../doc/figures/equations/eri-chem.png" height="60"/>
 
+# Implementation
+
+To implement CIS with restricted closed-shell RHF reference (RCIS)
+or with unrestricted open-shell UHF reference (UCIS),
+we will need to evaluate:
+ * Fock matrix elements in MO basis
+ * electron repulsion integrals in MO basis
