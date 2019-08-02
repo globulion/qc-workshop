@@ -7,9 +7,15 @@ Quantum Chemistry Workshop
 
 Quantum Chemistry with Python - Developing Own Scientific Ideas
 
-Author: Bartosz Błasiak (blasiak.bartosz@gmail.com)
-Venue: Wrocław University of Science and Technology, Wrocław, Poland
-Date: 
+ - Author: Bartosz Błasiak (blasiak.bartosz@gmail.com)
+ - Venue: Wrocław University of Science and Technology, Wrocław, Poland
+ - Date: 
+
+## Table of Contents:
+ * [Psithon: Python and Psi4 Combined](./tutor/psithon/README.md)
+ * [Project I: Population Analyses](./tutor/project_1/README.md)
+ * [Project II: Configuration Interaction with Singles](./tutor/project_2/README.md)
+ * [Project III: Trajectory Surface Hopping Dynamics](./tutor/project_3/README.md)
 
 ## Description
 
@@ -47,12 +53,6 @@ possibilities of writing quite sophisticated and powerful
 Python applications that can do more than you could expect! During this 1-week 
 interactive seminar session, we will focus on Python-Psi4 interface
 to write a few quantum chemistry codes and simply have fun.
-
-## Table of Contents:
- * [Psithon: Python and Psi4 Combined](./tutor/psithon/README.md)
- * [Project I: Population Analyses](./tutor/project_1/README.md)
- * [Project II: Configuration Interaction with Singles](./tutor/project_2/README.md)
- * [Project III: Trajectory Surface Hopping Dynamics](./tutor/project_3/README.md)
 
 ## Prerequisites
  * Basic knowledge of electronic structure theory and molecular dynamics
