@@ -21,7 +21,7 @@ class TimePoint:
       n = self.x.size
       #log+= "%13.6f"*n % tuple(self.x.ravel()) + '\n'
       #log+= "%13.6f"*n % tuple(self.v.ravel()) + '\n'
-      log+= "%13.6f"*3 % tuple(numpy.linalg.norm(self.f, axis=1)) + '\n'
+      log+= "%13.6f"*len(self.f) % tuple(numpy.linalg.norm(self.f, axis=1)) + '\n'
       out.write(log)
 
 class Trajectory:
