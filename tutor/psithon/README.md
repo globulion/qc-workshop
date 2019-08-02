@@ -151,13 +151,13 @@ Note that now total cost of such joint operation is lesser than the full, one-st
 Let us test it in Python. Let's take a look at the below Python functions:
 
 ```python
+def two_index_transform_full(int_ab, C1, C2):
+    int_IJ = numpy.einsum("ab,aI,bJ->IJ", int_ab, C1, C2)
+    return int_IJ
+
 def two_index_transform(int_ab, C1, C2):
     int_Ib = numpy.einsum("ab,aI->Ib", int_ab, C1); del int_ab
     int_IJ = numpy.einsum("Ib,bJ->IJ", int_Ib, C2); del int_Ib
-    return int_IJ
-
-def two_index_transform_full(int_ab, C1, C2):
-    int_IJ = numpy.einsum("ab,aI,bJ->IJ", int_ab, C1, C2)
     return int_IJ
 ```
 

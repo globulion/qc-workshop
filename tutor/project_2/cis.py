@@ -14,7 +14,7 @@ import time
 import numpy
 import psi4
 from abc import ABC, abstractmethod
-from ..psithon.util import four_index_transform
+from ..psithon.util import two_index_transform, four_index_transform
 
 #numpy.set_printoptions(precision=3, linewidth=200, suppress=True)
 
