@@ -26,6 +26,26 @@ def psi_molecule_from_file(f, frm=None, no_com=True, no_reorient=True):
     mol.update_geometry()
     return mol
 
+def two_index_transform(int_ab, C1, C2):
+    int_Ib = numpy.einsum("ab,aI->Ib", int_ab, C1); del int_ab
+    int_IJ = numpy.einsum("Ib,bJ->IJ", int_Ib, C2); del int_Ib
+    return int_IJ
+
+def two_index_transform_full(int_ab, C1, C2):
+    int_IJ = numpy.einsum("ab,aI,bJ->IJ", int_ab, C1, C2)
+    return int_IJ
+
+def four_index_transform(eri_abcd, C1, C2, C3, C4):
+    eri_Ibcd = numpy.einsum("abcd,aI->Ibcd", eri_abcd, C1); del eri_abcd  # cost: n^4 o
+    eri_IJcd = numpy.einsum("Ibcd,bJ->IJcd", eri_Ibcd, C2); del eri_Ibcd  # cost: n^3 o^2
+    eri_IJKd = numpy.einsum("IJcd,cK->IJKd", eri_IJcd, C3); del eri_IJcd  # cost: n^2 o^3
+    eri_IJKL = numpy.einsum("IJKd,dL->IJKL", eri_IJKd, C4); del eri_IJKd  # cost: n   o^4
+    return eri_IJKL
+
+def four_index_transform_full(eri_abcd, C1, C2, C3, C4):
+    eri_IJKL = numpy.einsum("abcd,aI,bJ,cK,dL->IJKL", eri_abcd, C1, C2, C3, C4) # cost: n^4 o^4
+    return eri_IJKL
+   
 def _reorder(P,sim,axis=0):
     """Reorders the tensor according to <axis> (default is 0). 
 <sim> is the list of pairs from 'order' function. 

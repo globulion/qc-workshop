@@ -2,41 +2,45 @@
 """
 A Psi4 input script to compute CIS energy from a SCF reference
 
-References:
 Algorithms were developed for ilustrative purposes.
-Equations from [Szabo:1996]
 """
 
-__authors__ = "Bartosz Błasiak"
-__credits__ = ["Bartosz Błasiak", "Tianyuan Zhang", "Jeffrey B. Schriber", "Daniel G. A. Smith"]
-
+__authors__   = "Bartosz Błasiak"
 __copyright__ = "(c) 2019"
-__license__ = "BSD-3-Clause"
-__date__ = "2019-07-23"
+__license__   = "BSD-3-Clause"
+__date__      = "2019-07-23"
 
 import time
 import numpy
 import psi4
 from abc import ABC, abstractmethod
+from ..psithon.util import four_index_transform
 
 #numpy.set_printoptions(precision=3, linewidth=200, suppress=True)
 
 __all__ = [\
            "CIS",
               "RCIS",
-              "UCIS",
-           "CIS_f"]
+              "UCIS",]
 
 
 
 class CIS(ABC):
+  """
+ Implementation of CIS method.
+"""
   reference_types = ['rhf', 'uhf']
+
   def __init__(self, mol, verbose, save_states):
       ABC.__init__(self)
       self._common_init(mol, verbose, save_states)
 
+
+  # ---> public interface <--- #
+
   @classmethod
   def create(cls, mol, verbose=True, save_states=None, reference='rhf'):
+      "Create CIS instance"
       if reference.lower() not in cls.reference_types:
          raise ValueError("Incorrect reference wavefunction type chosen. Only RHF and UHF are available")
       assert(not (reference.lower()=='rhf' and mol.multiplicity() != 1)), "RHF reference cannot be set for open-shell system!"
@@ -45,10 +49,15 @@ class CIS(ABC):
       else: return RCIS(mol, verbose, save_states)
 
   def run(self):
+      "Run CIS calculations"
       self._run_scf()
       self._prepare_for_cis()
       self._build_hamiltonian()
       self._diagonalize()
+
+
+  # ---> protected interface <--- #
+
   def _common_init(self, mol, verbose, save_states):
       self.mol = mol
       self.verbose = verbose
@@ -87,6 +96,14 @@ class CIS(ABC):
       #
       self.same_ab = None
       self.ci_l = None
+
+  def _run_scf(self):
+      self._set_scf_reference()
+      scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)
+      self.scf_e = scf_e
+      self.e_0   = scf_e - self.nuclear_repulsion_energy
+      self.ref_wfn = wfn
+
   def _prepare_for_cis(self):
       self.Ca_occ = self.ref_wfn.Ca_subset("AO","OCC")
       self.Ca_vir = self.ref_wfn.Ca_subset("AO","VIR")
@@ -106,8 +123,10 @@ class CIS(ABC):
       Oa = self.Ca_occ.to_array(dense=True)
       Va = self.Ca_vir.to_array(dense=True)
       #
-      self.eri_OVOV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
-      self.eri_OOVV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
+      #self.eri_OVOV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Oa, Va, eri)
+      #self.eri_OOVV = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Oa, Va, Va, eri)
+      self.eri_OVOV = four_index_transform(eri, Oa, Va, Oa, Va)
+      self.eri_OOVV = four_index_transform(eri, Oa, Oa, Va, Va)
       #
       #self.jk.C_clear()
       #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Da, ""))
@@ -119,16 +138,12 @@ class CIS(ABC):
       ##
       #Ga = H+2.0*Ja-Ka
       Ga = self.ref_wfn.Fa().to_array(dense=True)
-      self.Fa_occ = numpy.einsum("ai,ab,bj->ij", Oa, Ga, Oa)
-      self.Fa_vir = numpy.einsum("ai,ab,bj->ij", Va, Ga, Va)
+      #self.Fa_occ = numpy.einsum("ai,ab,bj->ij", Oa, Ga, Oa)
+      #self.Fa_vir = numpy.einsum("ai,ab,bj->ij", Va, Ga, Va)
+      self.Fa_occ = two_index_transform(Ga, Oa, Oa)
+      self.Fa_vir = two_index_transform(Ga, Va, Va)
       #
       self._set_beta(H, eri)
-  def _run_scf(self):
-      self._set_scf_reference()
-      scf_e, wfn = psi4.energy('HF', molecule=self.mol, return_wfn=True)
-      self.scf_e = scf_e
-      self.e_0   = scf_e - self.nuclear_repulsion_energy
-      self.ref_wfn = wfn
 
   @abstractmethod
   def _set_beta(self, H, eri): pass
@@ -183,6 +198,7 @@ class CIS(ABC):
       else:
           self.hamiltonian[(1+off_a):,(1+off_a):] = self.hamiltonian[1:1+off_a,1:1+off_a]
       del self.eri_ovov, self.eri_OVOV, self.eri_OVov, self.eri_OOVV, self.eri_oovv
+
   def _diagonalize(self):
       t = time.time()
       E, W = numpy.linalg.eigh(self.hamiltonian)
@@ -200,7 +216,7 @@ class CIS(ABC):
      
       hartree2eV = 27.211
       
-      if self.verbose: print('\nCIS Excitation Energies (Singlets only):')
+      if self.verbose: print('\nCIS Excitation Energies:')
       if self.verbose: print('          Hartree                  eV')
       if self.verbose: print('--  --------------------  --------------------')
       for i in range(1, len(E)):
@@ -214,8 +230,10 @@ class RCIS(CIS):
   def __init__(self, mol, verbose, save_states):
       CIS.__init__(self, mol, verbose, save_states)
       self.same_ab = True
+
   def _set_scf_reference(self):
       psi4.core.set_global_option('reference', 'rhf')
+
   def _set_beta(self, H, eri):
       self.Cb_occ = self.Ca_occ
       self.Cb_vir = self.Ca_vir
@@ -235,8 +253,10 @@ class UCIS(CIS):
   def __init__(self, mol, verbose, save_states):
       CIS.__init__(self, mol, verbose, save_states)
       self.same_ab = False
+
   def _set_scf_reference(self):
       psi4.core.set_global_option('reference', 'uhf')
+
   def _set_beta(self, H, eri):
       self.Cb_occ = self.ref_wfn.Cb_subset("AO","OCC")
       self.Cb_vir = self.ref_wfn.Cb_subset("AO","VIR")
@@ -251,9 +271,12 @@ class UCIS(CIS):
       Ob = self.Cb_occ.to_array(dense=True)
       Vb = self.Cb_vir.to_array(dense=True)
       #
-      self.eri_ovov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
-      self.eri_OVov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
-      self.eri_oovv = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
+      #self.eri_ovov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Vb, Ob, Vb, eri)
+      #self.eri_OVov = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Oa, Va, Ob, Vb, eri)
+      #self.eri_oovv = numpy.einsum("ai,bj,ck,dl,abcd->ijkl", Ob, Ob, Vb, Vb, eri)
+      self.eri_ovov = four_index_transform(eri, Ob, Vb, Ob, Vb)
+      self.eri_OVov = four_index_transform(eri, Oa, Va, Ob, Vb)
+      self.eri_oovv = four_index_transform(eri, Ob, Ob, Vb, Vb)
       #
       #self.jk.C_clear()
       #self.jk.C_left_add(psi4.core.Matrix.from_array(self.Db, ""))
@@ -265,11 +288,14 @@ class UCIS(CIS):
       ##
       #Gb = H + Ja + Jb - Kb
       Gb = self.ref_wfn.Fb().to_array(dense=True)
-      self.Fb_occ = numpy.einsum("ai,ab,bj->ij", Ob, Gb, Ob)
-      self.Fb_vir = numpy.einsum("ai,ab,bj->ij", Vb, Gb, Vb)
+      #self.Fb_occ = numpy.einsum("ai,ab,bj->ij", Ob, Gb, Ob)
+      #self.Fb_vir = numpy.einsum("ai,ab,bj->ij", Vb, Gb, Vb)
+      self.Fb_occ = two_index_transform(Gb, Ob, Ob)
+      self.Fb_vir = two_index_transform(Gb, Vb, Vb)
 
 
-class CIS_f:
+# - the same as above but in one class - #
+class CIS_one_class:
   "Direct CIS Method"
   def __init__(self, mol, verbose=True, save_states=4):
       self.mol = mol
