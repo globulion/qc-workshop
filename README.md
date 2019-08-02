@@ -79,8 +79,13 @@ Review the following literature: [4-6]
 ## References:
 
 [1] [A. Szabo, N. S. Ostlund: Modern Quantum Chemistry: Introduction to Advanced Electronic Structure Theory](https://store.doverpublications.com/0486691861.html)
+
 [2] [David C. Sherril's Lecture Notes](http://vergil.chemistry.gatech.edu/notes/cis/cis.html)
+
 [3] [Crawford's group Psithon Tutorial](https://github.com/CrawfordGroup/ProgrammingProjects)
+
 [4] [Hammes-Schiffer, S., Tully, J. C.; *J. Chem. Phys.* **1994** 101, 4657](https://aip.scitation.org/doi/10.1063/1.467455)
+
 [5] [Granucci, G., Persico, M.; *J. Chem. Phys.* **2007** 126, 134114](https://aip.scitation.org/doi/10.1063/1.2715585)
+
 [6] [Plasser, F., Ruckenbauer, M., Mai, S., Oppel, M., Marquetand, P., González, L.; *J. Chem. Theory Comput.* **2016** 12, 1207](https://pubs.acs.org/doi/10.1021/acs.jctc.5b01148)
