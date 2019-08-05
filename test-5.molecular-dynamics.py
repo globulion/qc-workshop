@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import tutor.psithon.util
-from tutor.project_2.cis import CIS
-import tutor.project_3.surface_hopping as sh, numpy, time
+from tutor.project_3.cis import CIS
+import tutor.project_4.surface_hopping as sh, numpy, time
 from tutor.project_1.population import atomic_charges, Loc
 numpy.set_printoptions(precision=4, linewidth=200, suppress=True)
 

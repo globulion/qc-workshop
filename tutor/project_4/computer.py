@@ -9,7 +9,7 @@ import math
 import psi4
 import numpy
 from .ciwavefunction import HF_CIWavefunction, CIS_CIWavefunction
-from ..project_2.cis import CIS
+from ..project_3.cis import CIS
 from ..psithon.util import rearrange_eigenpairs, check_sim
 
 __all__ = ["Computer"]

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import tutor.psithon.util
-from tutor.project_2.cis import CIS
+from tutor.project_3.cis import CIS
 
 mol = tutor.psithon.util.psi_molecule_from_file('water.xyz')
 
