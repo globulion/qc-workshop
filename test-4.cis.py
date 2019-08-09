@@ -6,9 +6,10 @@ mol = tutor.psithon.util.psi_molecule_from_file('water.xyz')
 
 set {
  scf_type df
+ guess core
  basis 6-31G*
  e_convergence 1e-8
- reference uhf
+ reference rhf
 }
 
 cis = CIS.create(mol, verbose=True)

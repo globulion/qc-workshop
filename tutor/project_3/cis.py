@@ -85,6 +85,11 @@ class CIS(ABC):
       self.Ca_vir = None
       self.Cb_vir = None
       #
+      self.eps_a_occ = None
+      self.eps_a_vir = None
+      self.eps_b_occ = None
+      self.eps_b_vir = None
+      #
       self.eri_OVOV = None
       self.eri_OOVV = None
       self.eri_OVov = None
@@ -95,7 +100,6 @@ class CIS(ABC):
       #self.jk = None
       #
       self.same_ab = None
-      self.ci_l = None
 
   def _run_scf(self):
       self._set_scf_reference()
@@ -137,11 +141,13 @@ class CIS(ABC):
       #Ka= self.jk.K()[0].to_array(dense=True)
       ##
       #Ga = H+2.0*Ja-Ka
-      Ga = self.ref_wfn.Fa().to_array(dense=True)
+      #Ga = self.ref_wfn.Fa().to_array(dense=True)
       #self.Fa_occ = numpy.einsum("ai,ab,bj->ij", Oa, Ga, Oa)
       #self.Fa_vir = numpy.einsum("ai,ab,bj->ij", Va, Ga, Va)
-      self.Fa_occ = two_index_transform(Ga, Oa, Oa)
-      self.Fa_vir = two_index_transform(Ga, Va, Va)
+      #self.Fa_occ = two_index_transform(Ga, Oa, Oa)
+      #self.Fa_vir = two_index_transform(Ga, Va, Va)
+      self.eps_a_occ = self.ref_wfn.epsilon_a_subset("MO","OCC").to_array()
+      self.eps_a_vir = self.ref_wfn.epsilon_a_subset("MO","VIR").to_array()
       #
       self._set_beta(H, eri)
 
@@ -158,7 +164,6 @@ class CIS(ABC):
       None
       # SS block
       off_a = self.naocc*self.navir
-      off_b = self.nbocc*self.nbvir
       for i in range(self.naocc):
           for a in range(self.navir):
               ia = self.navir*i + a
@@ -167,20 +172,18 @@ class CIS(ABC):
                   for b in range(self.navir):
                       jb = self.navir*j + b
                       v = 0.0
-                      if (i==j) and (a==b): v+= self.e_0
-                      if (i==j): v+= self.Fa_vir[a,b]
-                      if (a==b): v-= self.Fa_occ[i,j]
+                      if ((i==j) and (a==b)): v+= self.e_0 + self.eps_a_vir[a] - self.eps_a_occ[i]
                       v += self.eri_OVOV[i,a,j,b] - self.eri_OOVV[i,j,a,b] 
                       #
                       self.hamiltonian[1+ia,1+jb] = v
-              # block AB and BA
+              # blocks AB and BA
               for j in range(self.nbocc):
                   for b in range(self.nbvir):
                       jb = self.nbvir*j + b
                       v  = self.eri_OVov[i,a,j,b]
-                      self.hamiltonian[1+ia,1+jb+off_a] = v
-                      self.hamiltonian[1+jb+off_a,1+ia] = v
-      if not self.same_ab:
+                      self.hamiltonian[1+ia,1+jb+off_a] = v # AB
+                      self.hamiltonian[1+jb+off_a,1+ia] = v  # BA
+      if not self.same_ab: 
          for i in range(self.nbocc):                                                         
              for a in range(self.nbvir):
                  ia = self.nbvir*i + a
@@ -189,9 +192,7 @@ class CIS(ABC):
                      for b in range(self.nbvir):
                          jb = self.nbvir*j + b
                          v = 0.0
-                         if (i==j) and (a==b): v+= self.e_0
-                         if (i==j): v+= self.Fb_vir[a,b]
-                         if (a==b): v-= self.Fb_occ[i,j]
+                         if ((i==j) and (a==b)): v+= self.e_0 + self.eps_b_vir[a] - self.eps_b_occ[i]
                          v += self.eri_ovov[i,a,j,b] - self.eri_oovv[i,j,a,b] 
                          #
                          self.hamiltonian[1+ia+off_a,1+jb+off_a] = v
@@ -246,8 +247,10 @@ class RCIS(CIS):
       self.eri_ovov = self.eri_OVOV
       self.eri_OVov = self.eri_OVOV
       self.eri_oovv = self.eri_OOVV
-      self.Fb_occ = self.Fa_occ
-      self.Fb_vir = self.Fa_vir
+      #self.Fb_occ = self.Fa_occ
+      #self.Fb_vir = self.Fa_vir
+      self.eps_b_occ = self.eps_a_occ
+      self.eps_b_vir = self.eps_a_vir
 
 class UCIS(CIS):
   def __init__(self, mol, verbose, save_states):
@@ -260,7 +263,7 @@ class UCIS(CIS):
   def _set_beta(self, H, eri):
       self.Cb_occ = self.ref_wfn.Cb_subset("AO","OCC")
       self.Cb_vir = self.ref_wfn.Cb_subset("AO","VIR")
-      self.Db = self.ref_wfn.Db()
+      #self.Db = self.ref_wfn.Db()
       self.nbocc = self.ref_wfn.nbeta()
       self.nbvir = self.nmo - self.nbocc
       self.ndet = 1 + self.naocc * self.navir + self.nbocc * self.nbvir
@@ -287,11 +290,13 @@ class UCIS(CIS):
       #Kb= self.jk.K()[0].to_array(dense=True)
       ##
       #Gb = H + Ja + Jb - Kb
-      Gb = self.ref_wfn.Fb().to_array(dense=True)
+      #Gb = self.ref_wfn.Fb().to_array(dense=True)
       #self.Fb_occ = numpy.einsum("ai,ab,bj->ij", Ob, Gb, Ob)
       #self.Fb_vir = numpy.einsum("ai,ab,bj->ij", Vb, Gb, Vb)
-      self.Fb_occ = two_index_transform(Gb, Ob, Ob)
-      self.Fb_vir = two_index_transform(Gb, Vb, Vb)
+      #self.Fb_occ = two_index_transform(Gb, Ob, Ob)
+      #self.Fb_vir = two_index_transform(Gb, Vb, Vb)
+      self.eps_b_occ = self.ref_wfn.epsilon_b_subset("MO","OCC").to_array()
+      self.eps_b_vir = self.ref_wfn.epsilon_b_subset("MO","VIR").to_array()
 
 
 # - the same as above but in one class - #
