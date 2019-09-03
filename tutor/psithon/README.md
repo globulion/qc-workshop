@@ -329,7 +329,7 @@ They are usually undertaken when computing the atomic energy gradients,
 
 ```python
 cc_gr, cc_wfn = psi4.gradient('ccsd', molecule=mol, return_wfn=True)
-cc_da = ccwfn.Da()
+cc_da = cc_wfn.Da()
 ```
 
 ## Setting options for Psi4

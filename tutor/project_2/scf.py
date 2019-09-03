@@ -60,11 +60,12 @@ class SCF:
   def __init__(self, mol):
       "Initialize BasisSet, Wavefunction and JK objects"
       # Basis set
-      self._bfs = psi4.core.BasisSet.build(mol, "BASIS", psi4.core.get_global_option("BASIS"), puream=-1)
-      # Wavefunction
-      self._wfn = psi4.core.Wavefunction(mol, self._bfs)
+      self._bfs = psi4.core.BasisSet.build(mol, "ORBITAL", psi4.core.get_global_option("BASIS"), 
+                                                  puream=psi4.core.get_global_option("PUREAM"))
       # Number of alpha electrons
-      self._ndocc = self._wfn.nalpha()
+      q_el = int(mol.molecular_charge() - sum([mol.Z(x) for x in range(mol.natom())]))
+      if q_el%2 == 1: raise ValueError("The molecule has an unpaired electron! Only closed-shells are supported")
+      self._ndocc =int(-q_el / 2)
       # Integral calculator
       self._mints = psi4.core.MintsHelper(self._bfs)
       # JK object
@@ -93,26 +94,32 @@ class SCF:
       self.X = self._orthogonalizer(self.S)
       return
 
-  def run(self, maxit=30, conv=1.0e-7, guess=None, damp=0.01, ndamp=10, verbose=True):
+  def run(self, maxit=30, conv=1.0e-7, guess=None, damp=0.01, ndamp=10, verbose=True, v_ext=None):
       "Solve SCF (public interface)"
-      if guess is None:
-         # Form Hcore                    
-         T = self._mints.ao_kinetic()
-         V = self._mints.ao_potential()
-         H = T.clone()
-         H.add(V)
-         H = numpy.asarray(H)
-      else: H = numpy.asarray(guess)
+      # Form Hcore                    
+      T = self._mints.ao_kinetic()
+      V = self._mints.ao_potential()
+      H = T.clone()
+      H.add(V)
+      H = numpy.asarray(H)
+      if v_ext is not None:
+         H += numpy.asarray(v_ext)
       self.H = H.copy()
-      self._run(H, maxit, conv, damp, ndamp, verbose)
+      # Getermine guess
+      if guess is None:
+         guess = H
+      else:
+         guess = numpy.asarray(guess)
+      # Run SCF
+      self._run(guess, maxit, conv, damp, ndamp, verbose)
       return
 
   # --- protected --- #
 
-  def _run(self, H, maxit, conv, damp, ndamp, verbose):
+  def _run(self, guess, maxit, conv, damp, ndamp, verbose):
       "Solve SCF (protected interface)"
       # First step: Guess density matrix
-      F    = numpy.dot(self.X, numpy.dot(H, self.X)) 
+      F    = numpy.dot(self.X, numpy.dot(guess, self.X)) 
       E, C = numpy.linalg.eigh(F)
       C    = numpy.dot(self.X, C)
       idx = numpy.argsort(E)
@@ -124,14 +131,14 @@ class SCF:
       niter = 0
       e_old = 1e8
       e_new = 1e7
-      F_old = H.copy()
+      F_old = guess.copy()
       while (abs(e_old - e_new) > conv):
         niter += 1
         # form Fock matrix
         self._jk.C_clear()
         self._jk.C_left_add(psi4.core.Matrix.from_array(Co, "C matrix"))
         self._jk.compute()
-        F_new = H + 2.0 * numpy.asarray(self._jk.J()[0]) - numpy.asarray(self._jk.K()[0])
+        F_new = self.H + 2.0 * numpy.asarray(self._jk.J()[0]) - numpy.asarray(self._jk.K()[0])
         if niter < ndamp: 
            F = damp * F_old + (1.0 - damp) * F_new
         else:             
@@ -139,7 +146,7 @@ class SCF:
         F_old = F.copy()
         # compute total energy
         e_old = e_new
-        e_new = numpy.trace( numpy.dot(D, H + F) ) + self.e_nuc
+        e_new = numpy.trace( numpy.dot(D, self.H + F) ) + self.e_nuc
         if verbose:
             print (" @SCF Iter {:02} E = {:14.8f}".format(niter, e_new))
         # transform Fock matrix to orthogonal AO basis           
@@ -170,3 +177,4 @@ class SCF:
       L    = numpy.diag(1./numpy.sqrt(L))
       X    = numpy.dot(U, numpy.dot(L, U.T))
       return X
+
