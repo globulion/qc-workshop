@@ -68,7 +68,7 @@ energy('sapt0', molecule=h2o)
 ```
 
 The above task is a Psithon script that performs geometry optimization
-of water dimer in ground state by using the HF/6-31G model. After that,
+of water dimer in ground state by using the HF/6-31G(d) model. After that,
 it decomposes the interaction energy by using the symmetry adapted 
 perturbation theory ([SAPT](http://www.psicode.org/psi4manual/master/sapt.html)) method.
 To read more about inputting in Psi4, refer to the online 
@@ -83,12 +83,113 @@ of the molecule. `psi4.core.Molecule` class contains very handy implementation o
 functionalities. To specify molecule, we always need to provide charge and multiplicity. Symmetry information
 can also be provided. In Psi4, molecular coordinates are usually transformed to some standard orientation
 based on symmetry. This can be also switched off (for example, reorientation of molecule and/or translation of the centre of mass).
+Let us look at the following example 
+
+```python
+inp = ("""
+0 1
+C
+C  1  rcc
+H  1  rch  2  ahcc
+H  2  rch  1  ahcc  3  d1
+H  2  rch  1  ahcc  3  d2
+H  1  rch  2  ahcc  5  d1
+C  1  ro   2  a1    4  d3
+C  7  rcc  1  a1    2  d1
+H  7  rch  8  ahcc  2  d3
+H  8  rch  7  ahcc  9  d1
+H  8  rch  7  ahcc  9  d2
+H  7  rch  8  ahcc  11 d1
+
+rcc = 1.33627
+rch = 1.08510
+ro  = 4.16896
+ahcc= 121.693
+a1  = 90.0000
+d1  = 0.00000
+d2  = 180.000
+d3  = 89.906
+
+units angstrom
+symmetry c1
+noreorient
+nocom
+""")
+
+```
+Notice that we can also use z-matrix to define the geometry. The above is the ethylene dimer in D2h symmetry,
+but it is still a Python string.
+To create a molecule object from it one can for example use `psi.geometry` functionality,
+
+```python
+mol = psi4.geometry(inp)
+```
+
+The returned object, `mol`, is a `psi.core.Molecule` object.
+Altering the molecular geometry is very strightforward, especially when Z-matrix is used. Let us say, we want
+to increase the distance between ethylene monomers. To do this, we must just reset an appropriate
+attribute defined in the input geometry, i.e.,
+
+```python
+mol.ro = 3.4000 # this sets the distance between ethylene monomer atomic planes to 3.4 Angstrom
+mol.update_geometry()
+```
+
+Getting the coordinates, atomic masses, numbers and computing the center of mass is also very simple,
+
+```python
+xyz = mol.geometry()
+com = mol.center_of_mass()
+for i in range(mol.natom()):
+    Z = mol.Z(i)
+    x = mol.x(i)
+    y = mol.y(i)
+    z = mol.z(i)
+    print(" Atomic centre N=%3d Z=%3d x=%13.5f y=%13.5f z=%13.5f", i+1, Z, x, y, z)
+```
+
+Check by typing `help(psi4.core.Molecule)` in interactive Python about all functionalities.
+
+Before we go to next section, we provide a handy wrapper functon to directly create Molecule
+object directly from the XYZ file:
+
+```python
+def psi_molecule_from_file(f, frm=None, no_com=True, no_reorient=True):
+    "Construct psi4.core.Molecule object from structure file"
+    if frm is None: frm = f.split('.')[-1].lower()
+    #
+    if frm == 'xyz':
+       qmol = psi4.qcdb.Molecule.init_with_xyz(f, no_com=no_com, no_reorient=no_reorient)
+       mol  = psi4.geometry(qmol.create_psi4_string_from_molecule())
+    else: raise ValueError("Unrecognised format - %s -" % frm)
+    #
+    mol.update_geometry()
+    return mol
+```
+You can upgrade this function by adding more file formats.
 
 ## Basis set object
 
+The Gaussian basis set object is very important functionality, because we shall often
+compute various molecular integrals. The `psi.core.BasisSet` class is a powerful tool to create various
+basis set objects from molecule specification.
+
+```python
+bfs = psi4.core.BasisSet.build(mol, "ORBITAL", psi4.core.get_global_option("BASIS"), puream=1)
+```
+The above command creates basis set from the Molecule object
+by taking the keyword `BASIS` from the psi4 options and 
+using the pure angular momentum functions.
+BasisSet object can be used also to determine the assignment of each basis function to its atomic nucleus.
+
+> *Excercise*. Write a simple script which prints out all the basis set data: atomic centres,
+> orbital exponents and contraction coefficients. Hint: all these information can be directly accessed
+> from the BasisSet object.
+
 ## Mints: molecular integrals
 
-Very useful class is `psi4.core.MintsHelper`. Let us generate some integrals!
+Once one is familiar with the BasisSet object, the next very useful utility is molecular integral
+factory implemented in the `psi4.core.MintsHelper` class. The following code snippet shows some examples:
 
 ```python
 mints = psi4.core.MintsHelper(bfs)
@@ -101,16 +202,33 @@ eri = mints.ao_eri()
 What other integrals can you generate using MintsHelper object? What are the types of object returned by
 its methods?
 
+> *Excercise*: Compute the eigenvalues of the overlap matrix in AO basis and assess the extent of linear dependencies
+> in the basis set used. Compute the AO basis orthogonalizer matrix, that is, the transformation
+> matrix from non-orthogonal AO basis to an orthogonal AO basis. You can use the Lowdin symmetric orthogonalization
+> method.
+
+## Wavefunction object
+
+Psi4 has a very powerful class `psi4.core.Wavefunction` that handles all sorts of wavefunctions.
+The base class, Wavefunction, contains the most useful functionalities, such as obtaining
+the Molecule or primary BasisSet objects, getting the reference energy, or even one electron integrals.
+In Psi4, it is safer to create them by using the specialized drivers that ensure that wavefunctions
+build this way are correctly build.
+
 ## Psi4 drivers: computing wavefunctions and more
 
-Solve time-independent Schrodinger equation:
+Driver `energy` is one of the most important Psi4 drivers, since it has the capability to compute
+total energy of the system and return the associated wavefunction. For example,
+we can solve the time-independent Schrodinger equation by using various approximate methods,
 
 ```python
 e_hf, w_hf = psi4.energy('scf', molecule=h2o, return_wfn=True)
 e_cc2, w_cc2 = psi4.energy('cc2', molecule=h2o, return_wfn=True, ref_wfn=w_hf)
 ```
 
-Grab some data from those objects:
+Note that `e_hf` and `e_cc2` are total energies whereas `w_hf` and `w_cc2` are the Wavefunction objects.
+We can also
+grab some data from those objects:
 
 ```python
 # Fock matrix (alpha)
