@@ -75,7 +75,7 @@ Revise the following material prior to the workshop:
  * One- and two-electron integrals
  * Excited electronic states, Jablonski diagram, conical intersections, non-adiabatic coupling
 
-Review the following literature: [4-6]
+Review the following literature: [5-7]
 
 ## References:
 
@@ -85,8 +85,10 @@ Review the following literature: [4-6]
 
 [3] [Crawford's group Psithon Tutorial](https://github.com/CrawfordGroup/ProgrammingProjects)
 
-[4] [Hammes-Schiffer, S., Tully, J. C.; *J. Chem. Phys.* **1994** 101, 4657](https://aip.scitation.org/doi/10.1063/1.467455)
+[5] [Smith, D. A. G., Burns, L. A., et al.; *J. Chem. Theory Comput.* **2018** 14, 3504](https://pubs.acs.org/doi/10.1021/acs.jctc.8b00286)
 
-[5] [Granucci, G., Persico, M.; *J. Chem. Phys.* **2007** 126, 134114](https://aip.scitation.org/doi/10.1063/1.2715585)
+[5] [Hammes-Schiffer, S., Tully, J. C.; *J. Chem. Phys.* **1994** 101, 4657](https://aip.scitation.org/doi/10.1063/1.467455)
 
-[6] [Plasser, F., Ruckenbauer, M., Mai, S., Oppel, M., Marquetand, P., González, L.; *J. Chem. Theory Comput.* **2016** 12, 1207](https://pubs.acs.org/doi/10.1021/acs.jctc.5b01148)
+[6] [Granucci, G., Persico, M.; *J. Chem. Phys.* **2007** 126, 134114](https://aip.scitation.org/doi/10.1063/1.2715585)
+
+[7] [Plasser, F., Ruckenbauer, M., Mai, S., Oppel, M., Marquetand, P., González, L.; *J. Chem. Theory Comput.* **2016** 12, 1207](https://pubs.acs.org/doi/10.1021/acs.jctc.5b01148)
