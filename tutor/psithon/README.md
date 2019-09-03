@@ -168,7 +168,7 @@ def psi_molecule_from_file(f, frm=None, no_com=True, no_reorient=True):
 ```
 You can upgrade this function by adding more file formats.
 
-## Basis set object
+## BasisSet object
 
 The Gaussian basis set object is very important functionality, because we shall often
 compute various molecular integrals. The `psi.core.BasisSet` class is a powerful tool to create various
@@ -207,13 +207,54 @@ its methods?
 > matrix from non-orthogonal AO basis to an orthogonal AO basis. You can use the Lowdin symmetric orthogonalization
 > method.
 
+## JK object: generalized Coulomb and exchange integrals
+
+Cartain contractions with two-electron integrals are of particular importance in Quantum Chemistry.
+Often one might need to compute the following generalized Coulomb and exchange matrices,
+
+<img src="../../doc/figures/equations/j-matrix.png" height="40"/>
+<img src="../../doc/figures/equations/k-matrix.png" height="40"/>
+
+To build the JK object, one needs the BasisSet object only,
+```python
+jk = psi4.core.JK.build(bfs, jk_type="Direct")
+jk.set_memory(int(5e8))
+jk.initialize()
+```
+Below the code snippet presents the way to compute sets of **J** and **K** matrices
+in a parallel and very efficient fashion,
+
+```python
+c_set = []
+c_set.append(wfn.Ca(), wfn.Ca())
+# one can append more sets of right and left C matrices
+for cl, cr in c_set:
+    jk.C_clear()
+    jk.C_left_add(cl)
+    jk.C_right_add(cr)
+jk.compute()
+J_set = jk.J()
+K_set = jk.K()
+
+# print K matrix for first set on the screen as NumPy ndarray:
+print(K_set[0].to_array())
+```
+Of course, **J** and **K** matrices can be also computed by other means in Python.
+However, the JK object is the fastest way to do that.
+
+> *Excercise*: Compute the **J** and **K** matrices for an SCF closed shell wavefunction
+> by using the JK object and by the following alternate method: compute two-repulsion
+> integrals by using the MintsHelper utility, and perform tensor contractions,
+> e.g., by using the `numpy.einsum` function. Ensure that the results from both calculations
+> aggree. Compute the total time for calculation and compare. Which is faster and how much?
+
 ## Wavefunction object
 
 Psi4 has a very powerful class `psi4.core.Wavefunction` that handles all sorts of wavefunctions.
 The base class, Wavefunction, contains the most useful functionalities, such as obtaining
 the Molecule or primary BasisSet objects, getting the reference energy, or even one electron integrals.
 In Psi4, it is safer to create them by using the specialized drivers that ensure that wavefunctions
-build this way are correctly build.
+built this way are correct.
 
 ## Psi4 drivers: computing wavefunctions and more
 
@@ -250,11 +291,33 @@ Check out also other Psi4 drivers:
  * `gradient`
  * `optimize`
 
+## Setting options for Psi4
+
+Note that during each Psi4 run, 
+the **singleton** object of type `psi4.core.Options` is created.
+This object can be accessed by various means, for example, each Wavefunction
+object stores a reference to it and can be returned by invoking `wfn.options()`.
+Setting up options in Psithon, the command `set` can be used.
+Once working from pure Python, Psi4 options can be set up
+by specifying the Python dictionary
+
+```python
+# set Psi4 options
+psi4.set_options({"scf_type"       : "df"    ,  # Density-fitted SCF
+                  "basis"          : "6-31G*",  # Primary basis set
+                  "e_convergence"  : 1e-9    ,  # Energy convergence
+                  "puream"         : False   ,  # Using Cartesian AO's
+                  "print"          : 3       }) # Print more information to output file
+
+# set Psi4 output and run Psi4 quietly
+psi4.core.set_output_file('my_output_file.out', True)
+```
 
 ## Play around in Python
 
-Let us address a few important technical problems that developer 
-will for sure encounter.
+After we are familiar with the most basic functionalities in Psi4,
+let us now address a few important technical problems that developer 
+will for sure encounter: transformations of 2- and 4-rank tensors.
 
 ### 2-index transformation
 
