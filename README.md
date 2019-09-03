@@ -12,11 +12,11 @@ Quantum Chemistry with Python - Developing Own Scientific Ideas
  - Date: 23-25 September 2019
 
 ## Table of Contents:
- * [Psithon: Python and Psi4 Combined](./tutor/psithon/README.md)
- * [Project I: Population Analyses](./tutor/project_1/README.md)
- * [Project II Hartree-Fock Model](./tutor/project_2/README.md)
- * [Project III: Configuration Interaction with Singles](./tutor/project_3/README.md)
- * [Project IV: Trajectory Surface Hopping Dynamics](./tutor/project_4/README.md)
+ * [Psithon: Python and Psi4 Combined](./tutor/psithon/README.md#using-psi4-as-python-module)
+ * [Project I: Population Analyses](./tutor/project_1/README.md#population-analyses)
+ * [Project II Hartree-Fock Model](./tutor/project_2/README.md#the-hartree-fock-model)
+ * [Project III: Configuration Interaction with Singles](./tutor/project_3/README.md#configuration-interaction-singles)
+ * [Project IV: Trajectory Surface Hopping Dynamics](./tutor/project_4/README.md#trajectory-surface-hopping)
 
 ## Description
 

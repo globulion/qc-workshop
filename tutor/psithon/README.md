@@ -495,4 +495,4 @@ Variable `__all__` can be set up in each of those modules to specify what is the
 that is reachable by the user (that is, importable).
 
 -----------
-[Main Page](https://github.com/globulion/qc-workshop)
+[Main Page](https://github.com/globulion/qc-workshop#quantum-chemistry-workshop)
