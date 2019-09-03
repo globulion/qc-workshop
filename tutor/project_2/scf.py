@@ -116,23 +116,34 @@ class SCF:
 
   def _run(self, guess, maxit, conv, damp, ndamp, verbose):
       "Solve SCF (protected interface)"
-      # First step: Guess density matrix
+      # [1] Choose guess for the Fock matrix. -> taken from the first argument
+      # [2] Compute the orthogonalizer -> done in the constructor
+      # [3] Transform guess Fock matrix to orthogonal AO basis
       F    = numpy.dot(self.X, numpy.dot(guess, self.X)) 
+
+      # [4] Diagonalize to obtain orbital energies and MO's
       E, C = numpy.linalg.eigh(F)
+
+      # [5] Back-transform orbitals to the original basis
       C    = numpy.dot(self.X, C)
       idx = numpy.argsort(E)
       E = E[  idx]
       C = C[:,idx]
       Co= C[:,:self._ndocc].copy()
+
+      # [6] Compute density matrix in original basis
       D = numpy.dot(Co,Co.T)
       
       niter = 0
       e_old = 1e8
       e_new = 1e7
       F_old = guess.copy()
+
+      # [13] Iterate between Points 7-12 until convergence
       while (abs(e_old - e_new) > conv):
         niter += 1
-        # form Fock matrix
+
+        # [7] SCF cycle: Compute new Fock matrix in original basis
         self._jk.C_clear()
         self._jk.C_left_add(psi4.core.Matrix.from_array(Co, "C matrix"))
         self._jk.compute()
@@ -142,23 +153,29 @@ class SCF:
         else:             
            F = F_new
         F_old = F.copy()
-        # compute total energy
+
+        # [8] SCF cycle: Compute current energy
         e_old = e_new
         e_new = numpy.trace( numpy.dot(D, self.H + F) ) + self.e_nuc
         if verbose:
             print (" @SCF Iter {:02} E = {:14.8f}".format(niter, e_new))
-        # transform Fock matrix to orthogonal AO basis           
+
+        # [9] SCF cycle: Transform new Fock matrix to orthogonal basis
         F = numpy.dot(self.X, numpy.dot(F, self.X))
-        # diagonalize the Fock matrix
+
+        # [10] SCF cycle: Diagonalize new Fock matrix to obtain new orbital energies and MO's
         E, C = numpy.linalg.eigh(F)
-        # convert LCAO-MO coefficiets to non-orthogonal AO basis
+
+        # [11] SCF cycle: Back-transform new orbitals to the original basis
         C = numpy.dot(self.X, C)
-        # form density matrix
         idx = numpy.argsort(E) 
         E = E[  idx]
         C = C[:,idx]
         Co= C[:,:self._ndocc].copy()
+
+        # [12] SCF cycle: Compute density matrix in original basis
         D = numpy.dot(Co,Co.T)
+
         # save
         self.D = D.copy()
         self.E = e_new
@@ -166,6 +183,7 @@ class SCF:
         self.C = C.copy()
         self.Co= Co.copy()
         self.eps = E.copy()
+        # break if maxiter exceeded
         if niter > maxit: break
       return
 
