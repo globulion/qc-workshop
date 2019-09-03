@@ -215,6 +215,10 @@ Often one might need to compute the following generalized Coulomb and exchange m
 <img src="../../doc/figures/equations/j-matrix.png" height="40"/>
 <img src="../../doc/figures/equations/k-matrix.png" height="40"/>
 
+where two-electron integral is defined here according to the Coulomb (chemists') notation, 
+whereas two **C** matrices (labeled here as left and right) are transformation matrices
+from AO basis to some other arbitrary basis (another AO basis, some MO basis, etc).
+
 To build the JK object, one needs the BasisSet object only,
 ```python
 jk = psi4.core.JK.build(bfs, jk_type="Direct")
@@ -290,6 +294,38 @@ What else can you extract from the wavefunctions returned by Psi4 driver `energy
 Check out also other Psi4 drivers:
  * `gradient`
  * `optimize`
+
+## Computing one-particle density matrix
+
+Wavefunction object contains methods to extract the one-particle density matrix, 
+which can be very useful in many applications. However, one must be careful about the
+level of theory. For SCF, density matrix can be normally extracted,
+
+```python
+hf_e, hf_wfn = psi4.energy('scf', molecule=mol, return_wfn=True)
+da = hf_wfn.Da()
+db = hf_wfn.Db()
+```
+
+However for the post-HF wavefunction methods, the density matrix is usually not computed directly
+when using the `energy` driver. This is because, just to compute energy, explicit density matrix
+is not necessary to be computed.
+Therefore, 
+
+```python
+hf_e, cc_wfn = psi4.energy('ccsd', molecule=mol, return_wfn=True)
+da = hf_wfn.Da()
+db = hf_wfn.Db()
+```
+
+will yield **SCF density matrices, not CC density matrices**.
+In order to compute the density matrix in particular level of post-HF theory, one must run the density calculations.
+They are usually undertaken when computing the atomic energy gradients,
+
+```python
+cc_gr, cc_wfn = psi4.gradient('ccsd', molecule=mol, return_wfn=True)
+Da_cc = ccwfn.Da()
+```
 
 ## Setting options for Psi4
 
