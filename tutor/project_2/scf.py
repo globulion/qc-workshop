@@ -55,7 +55,7 @@ class SCF:
  (10 of which are performed by damping of the Fock matrix with damping coefficient of 0.01).
  The SCF iterations are printed to standard output (verbose=True).
  ---------------------------------------------------------------------------------------------------------------
-                                                                       Last Revision: Gundelfingen, May 4th 2018
+ B. Blasiak                                                            Last Revision: Gundelfingen, May 4th 2018
 """
   def __init__(self, mol):
       "Initialize BasisSet, Wavefunction and JK objects"
@@ -94,7 +94,7 @@ class SCF:
       self.X = self._orthogonalizer(self.S)
       return
 
-  def run(self, maxit=30, conv=1.0e-7, guess=None, damp=0.01, ndamp=10, verbose=True, v_ext=None):
+  def run(self, maxit=30, conv=1.0e-7, guess=None, damp=0.01, ndamp=10, verbose=True):
       "Solve SCF (public interface)"
       # Form Hcore                    
       T = self._mints.ao_kinetic()
@@ -102,8 +102,6 @@ class SCF:
       H = T.clone()
       H.add(V)
       H = numpy.asarray(H)
-      if v_ext is not None:
-         H += numpy.asarray(v_ext)
       self.H = H.copy()
       # Getermine guess
       if guess is None:
@@ -177,4 +175,3 @@ class SCF:
       L    = numpy.diag(1./numpy.sqrt(L))
       X    = numpy.dot(U, numpy.dot(L, U.T))
       return X
-
