@@ -9,7 +9,7 @@ Quantum Chemistry with Python - Developing Own Scientific Ideas
 
  - Author: Bartosz Błasiak (blasiak.bartosz@gmail.com)
  - Venue: Wrocław University of Science and Technology, Wrocław, Poland
- - Date: 
+ - Date: 23-25 September 2019
 
 ## Table of Contents:
  * [Psithon: Python and Psi4 Combined](./tutor/psithon/README.md)
