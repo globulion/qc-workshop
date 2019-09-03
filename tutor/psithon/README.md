@@ -295,27 +295,32 @@ Check out also other Psi4 drivers:
  * `gradient`
  * `optimize`
 
-## Computing one-particle density matrix
+## Computing the one-particle density matrix
 
 Wavefunction object contains methods to extract the one-particle density matrix, 
 which can be very useful in many applications. However, one must be careful about the
-level of theory. For SCF, density matrix can be normally extracted,
+level of theory. For HF and FCI, density matrix can be normally extracted,
 
 ```python
 hf_e, hf_wfn = psi4.energy('scf', molecule=mol, return_wfn=True)
-da = hf_wfn.Da()
-db = hf_wfn.Db()
+hf_da = hf_wfn.Da()
+hf_db = hf_wfn.Db()
+
+fci_e, fci_wfn = psi4.energy('fci', molecule=mol, return_wfn=True)
+fci_da = hf_wfn.Da()
+fci_db = hf_wfn.Db()
 ```
 
-However for the post-HF wavefunction methods, the density matrix is usually not computed directly
-when using the `energy` driver. This is because, just to compute energy, explicit density matrix
-is not necessary to be computed.
+However, for other post-HF wavefunction methods such as truncated CI or CC, 
+the density matrix is usually not computed directly
+when using the `energy` driver. This is because computing the explicit density matrix
+(which is costly)
+is not necessary to obtain the energy.
 Therefore, 
 
 ```python
 hf_e, cc_wfn = psi4.energy('ccsd', molecule=mol, return_wfn=True)
-da = hf_wfn.Da()
-db = hf_wfn.Db()
+cc_da = hf_wfn.Da()
 ```
 
 will yield **SCF density matrices, not CC density matrices**.
@@ -324,7 +329,7 @@ They are usually undertaken when computing the atomic energy gradients,
 
 ```python
 cc_gr, cc_wfn = psi4.gradient('ccsd', molecule=mol, return_wfn=True)
-Da_cc = ccwfn.Da()
+cc_da = ccwfn.Da()
 ```
 
 ## Setting options for Psi4
