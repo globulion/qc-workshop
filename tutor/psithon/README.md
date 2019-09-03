@@ -69,11 +69,20 @@ energy('sapt0', molecule=h2o)
 
 The above task is a Psithon script that performs geometry optimization
 of water dimer in ground state by using the HF/6-31G model. After that,
-it decomposes the interaction energy by using the symmetry adapted perturbation theory (SAPT) method.
+it decomposes the interaction energy by using the symmetry adapted 
+perturbation theory ([SAPT](http://www.psicode.org/psi4manual/master/sapt.html)) method.
+To read more about inputting in Psi4, refer to the online 
+Psi4 [documentation](http://www.psicode.org/psi4manual/master/index.html).
 
 Below, we shall go through a few technical aspects that we will encounter later on during the workshop.
 
 ## Molecule object
+
+It is often useful to extract atomic positions, atomic numbers or masses, or quickly get the center of mass
+of the molecule. `psi4.core.Molecule` class contains very handy implementation of the above and much more
+functionalities. To specify molecule, we always need to provide charge and multiplicity. Symmetry information
+can also be provided. In Psi4, molecular coordinates are usually transformed to some standard orientation
+based on symmetry. This can be also switched off (for example, reorientation of molecule and/or translation of the centre of mass).
 
 ## Basis set object
 
