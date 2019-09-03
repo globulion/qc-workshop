@@ -5,28 +5,28 @@ of molecules is through the Hartree-Fock (HF), or molecular orbital, approximati
 Here we consider HF theory for the closed shell case,
 where the total energy of the molecule is given by
 
-<img src="../../doc/figures/equations/energy.png" height="40"/>
+<img src="../../doc/figures/equations/energy.png" height="20"/>
 
 where the nuclear repulsion energy is
 
-<img src="../../doc/figures/equations/nuclear-repulsion-energy.png" height="40"/>
+<img src="../../doc/figures/equations/nuclear-repulsion-energy.png" height="55"/>
 
 and the effective one-electron Fock matrix **F** is defined according to
 
-<img src="../../doc/figures/equations/fock-matrix.png" height="40"/>
+<img src="../../doc/figures/equations/fock-matrix.png" height="20"/>
 
 **D**, the one-particle density matrix,
 
-<img src="../../doc/figures/equations/density-matrix.png" height="40"/>
+<img src="../../doc/figures/equations/density-matrix.png" height="30"/>
 
 is build up from the occupied molecular orbital's block of the molecular orbitals LCAO-MO matrix
 **C**, given by the generalized eigenvalue problem
 
-<img src="../../doc/figures/equations/orbital-energies.png" height="40"/>
+<img src="../../doc/figures/equations/orbital-energies.png" height="20"/>
 
 Note that the Core Hamiltonian **H**core is independent of the density matrix,
 
-<img src="../../doc/figures/equations/core-hamiltonian.png" height="40"/>
+<img src="../../doc/figures/equations/core-hamiltonian.png" height="80"/>
 
 whereas the Coulomb and exchange integrals need to be computed from it
 by contracting it with the two-electron integrals, i.e.,
@@ -45,7 +45,7 @@ MO's back-transformed to the original (non-orthogonal) AO basis.
 
 The algorithm can be sketched in the following steps:
   1. Choose guess for the Fock matrix. 
-  2. Compute the orthogonalizer
+  2. Compute the orthogonalizer and core Hamiltonian
   3. Transform guess Fock matrix to orthogonal AO basis
   4. Diagonalize to obtain orbital energies and MO's
   5. Back-transform orbitals to the original basis
@@ -64,34 +64,41 @@ Below, we analyze each of the above steps in detail.
 
 One of the simplest to implement is just core Hamiltonian (density matrix is zero).
 
-## 2. Compute the orthogonalizer
+## 2. Compute the orthogonalizer and core Hamiltonian
 
 The orthogonalizer can be computed according to the Lowdin method,
 in which 
 
-<img src="../../doc/figures/equations/orthogonalizer.png" height="40"/>
+<img src="../../doc/figures/equations/orthogonalizer.png" height="20"/>
 
-where **S** is the overlap matrix between AO's.
+where **S** is the overlap matrix between AO's. Core Hamiltonian can be built
+very easily using the MintsHelper object:
+```python
+mints = psi4.core.MintsHelper(bfs)
+T = mints.ao_kinetic() # kinetic integrals
+V = mints.ao_potential() # sum of potential electron-nucleus integrals over all nuclei
+H_core = T.to_array() + V.to_array()
+```
 
 ## 3. Transform guess Fock matrix to orthogonal AO basis
 
 The transformation can be easily achieved just by evaluating
 
-<img src="../../doc/figures/equations/fock-transform.png" height="40"/>
+<img src="../../doc/figures/equations/fock-transform.png" height="20"/>
 
 ## 4. Diagonalize to obtain orbital energies and MO's
 
 That is, compute eigenvalues and eigenvectors of the Fock matrix in orthogonal AO space
 according to
 
-<img src="../../doc/figures/equations/diagonalization.png" height="40"/>
+<img src="../../doc/figures/equations/diagonalization.png" height="20"/>
 
 ## 5. Back-transform orbitals to the original basis
 
 Since Fock matrix is now in orthogonal AO space, we need to back transform it
 to original space according to
 
-<img src="../../doc/figures/equations/backtransform.png" height="40"/>
+<img src="../../doc/figures/equations/backtransform.png" height="20"/>
 
 ## 6. Compute density matrix in original basis
 
@@ -120,7 +127,7 @@ To improve convergence, Fock matrix can be 'smoothen' by applying the so called 
 It is just a linear interpolation between previous and current Fock matrix, with one scalar parameter in the integval between
 0 and 1: 
 
-<img src="../../doc/figures/equations/fock-damping.png" height="40"/>
+<img src="../../doc/figures/equations/fock-damping.png" height="20"/>
 
 In the above, the value of 0 for the damping parameter 
 corresponds to no damping (new guess for Fock is entirely taken from the update), 1 corresponds to no change.
