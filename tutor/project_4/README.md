@@ -752,30 +752,6 @@ class PDE_QMQM_Hamiltonian(PE_QMQM_Hamiltonian):
   "Polarization density embedding potential is set on L"
 ```
 
-## Structuring code into a package
-
-The Python code can be organized in higher-order structures such as modules and (sub)package.
-
-```
-qc-workshop/
-
-   tutor/psithon
-     util.py 
-
-   tutor/project_1/
-     population.py
-
-   tutor/project_2/
-     cis.py
-
-   tutor/project_3/
-     aggregate.py  
-     trajectory.py
-     ciwavefunction.py  
-     computer.py  
-     hamiltonian.py
-     surface_hopping.py  
-```
 
 -----------
-[Main Page](https://github.com/globulion/qc-workshop)
+[Main Page](https://github.com/globulion/qc-workshop#quantum-chemistry-workshop)

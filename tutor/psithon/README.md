@@ -456,5 +456,43 @@ the output of our script is
 There is three orders of magnitude difference in these two 4-index transformation
 approaches! Note that implementation of it is very simple and quite straightforward, even in Python.
 
+## Structuring code into a package
+
+The Python code can be organized in higher-order structures such as modules and (sub)package.
+This workshop code is composed of the following files:
+```
+qc-workshop/
+
+   tutor/psithon
+     util.py 
+
+   tutor/project_1/
+     population.py
+
+   tutor/project_2/
+     scf.py
+
+   tutor/project_3/
+     cis.py
+
+   tutor/project_4/
+     aggregate.py  
+     trajectory.py
+     ciwavefunction.py  
+     computer.py  
+     hamiltonian.py
+     surface_hopping.py  
+```
+Therefore, the package `qc-workshop` has five subpackages: `tutor.psithon`, `tutor.project_1`,
+`tutor.project_2`, `tutor.project_3` and `tutor.project_4`. Each of those subpackages
+contains modules, for example `tutor.project_3` contains one module `tutor.project_3.cis`.
+To access the functionalities from those subpackages, simply use standard Python 3 syntax for importing
+modules and their contents:
+```python
+from tutor.project_2.scf import *
+```
+Variable `__all__` can be set up in each of those modules to specify what is the public interface
+that is reachable by the user (that is, importable).
+
 -----------
 [Main Page](https://github.com/globulion/qc-workshop)

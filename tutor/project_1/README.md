@@ -169,4 +169,4 @@ The quadrupole moments can tell us about the shape of the orbital. What can you 
 the orbitals you obtain?
 
 -----------
-[Main Page](https://github.com/globulion/qc-workshop)
+[Main Page](https://github.com/globulion/qc-workshop#quantum-chemistry-workshop)

@@ -117,7 +117,7 @@ class SCF:
   def _run(self, guess, maxit, conv, damp, ndamp, verbose):
       "Solve SCF (protected interface)"
       # [1] Choose guess for the Fock matrix. -> taken from the first argument
-      # [2] Compute the orthogonalizer -> done in the constructor
+      # [2] Compute the orthogonalizer and Hcore matrix -> done already
       # [3] Transform guess Fock matrix to orthogonal AO basis
       F    = numpy.dot(self.X, numpy.dot(guess, self.X)) 
 

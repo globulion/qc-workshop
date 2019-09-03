@@ -81,4 +81,4 @@ we will need to evaluate:
  * electron repulsion integrals in MO basis
 
 -----------
-[Main Page](https://github.com/globulion/qc-workshop)
+[Main Page](https://github.com/globulion/qc-workshop#quantum-chemistry-workshop)

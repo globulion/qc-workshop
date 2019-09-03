@@ -121,7 +121,7 @@ K = jk.K()[0]
 F = H_core + 2.0 * J.to_array() - K.to_array()
 ```
 Pay attention to the types of data here. Note that `J` and `K` objects are returned as `psi4.core.Matrix` objects,
-not `numpy.ndarray` objects.
+not `numpy.ndarray` objects. Note also, that we do not set the right **C** matrix: in this case the right matrix is assumed to be identical to the left **C** matrix.
 
 To improve convergence, Fock matrix can be 'smoothen' by applying the so called damping algorithm.
 It is just a linear interpolation between previous and current Fock matrix, with one scalar parameter in the integval between
@@ -173,6 +173,9 @@ Co - C[:,:ndocc]
 ```
 where `ndocc` is the number of doubly occupied MO's (since we consider a closed shell here).
 
+> *Excercise*: Implement the unrestricted HF method (UHF) method
+> by extending the above RHF code.
+
 -----------
 
-[Main Page](https://github.com/globulion/qc-workshop)
+[Main Page](https://github.com/globulion/qc-workshop#quantum-chemistry-workshop)
