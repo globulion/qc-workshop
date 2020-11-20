@@ -8,8 +8,10 @@ Quantum Chemistry Workshop
 Quantum Chemistry with Python - Developing Own Scientific Ideas
 
  - Author: Bartosz Błasiak (blasiak.bartosz@gmail.com)
- - Venue: Wrocław University of Science and Technology, Wrocław, Poland
- - Date: 23-25 September 2019 (classroom and exact time will be set after 18th September)
+ - Date: 23-25 September 2019
+ - Time: 8:00-13:00 CEST on each day of course
+ - Venue: Building C-6, Room 10, Wrocław University of Science and Technology, Wrocław, Poland
+
 
 ## Table of Contents:
  * [Psithon: Python and Psi4 Combined](./tutor/psithon/README.md#using-psi4-as-python-module)
