@@ -13,7 +13,7 @@ Quantum Chemistry with Python - Developing Own Scientific Ideas
  - Venue: Building C-6, Room 10, Wrocław University of Science and Technology, Wrocław, Poland
 
 
-## Table of Contents:
+## Table of Contents
  * [Psithon: Python and Psi4 Combined](./tutor/psithon/README.md#using-psi4-as-python-module)
  * [Project I: Population Analyses](./tutor/project_1/README.md#population-analyses)
  * [Project II Hartree-Fock Model](./tutor/project_2/README.md#the-hartree-fock-model)
@@ -79,7 +79,7 @@ Revise the following material prior to the workshop:
 
 Review the following literature: [5-7]
 
-## Additional Notes:
+## Additional Notes
 
 This project is funded by National Science Centre, Poland (grant no. 2016/23/P/ST4/01720) within the POLONEZ 3 fellowship. This project is carried out under POLONEZ programme which has received funding from the European Union's Horizon 2020 research and innovation programme under the Marie Skłodowska-Curie grant H2020-MSCA-Cofund agreement No. 665778. 
 
