@@ -79,6 +79,16 @@ Revise the following material prior to the workshop:
 
 Review the following literature: [5-7]
 
+## Additional Notes:
+
+This project is funded by National Science Centre, Poland (grant no. 2016/23/P/ST4/01720) within the POLONEZ 3 fellowship. This project is carried out under POLONEZ programme which has received funding from the European Union's Horizon 2020 research and innovation programme under the Marie Skłodowska-Curie grant H2020-MSCA-Cofund agreement No. 665778. 
+
+<p align="center">
+<img src="https://europa.eu/european-union/sites/europaeu/files/docs/body/flag_yellow_high.jpg" width="40">
+</p>
+
+Image by <a href="https://pixabay.com/users/tommyvideo-3092371/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=5064796">Tomislav Jakupec</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=5064796">Pixabay</a>
+
 ## References:
 
 [1] [A. Szabo, N. S. Ostlund: Modern Quantum Chemistry: Introduction to Advanced Electronic Structure Theory](https://store.doverpublications.com/0486691861.html)
