@@ -87,7 +87,7 @@ This project is funded by National Science Centre, Poland (grant no. 2016/23/P/S
 <img src="https://europa.eu/european-union/sites/europaeu/files/docs/body/flag_yellow_high.jpg" width="40">
 </p>
 
-Image by <a href="https://pixabay.com/users/tommyvideo-3092371/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=5064796">Tomislav Jakupec</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=5064796">Pixabay</a>
+Image by <a href="https://pixabay.com/users/tommyvideo-3092371/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=5064796">Tomislav Jakupec</a> from <a href="https://pixabay.com/?utm_source=link-attribution&amp;utm_medium=referral&amp;utm_campaign=image&amp;utm_content=5064796">Pixabay</a>.
 
 ## References:
 
